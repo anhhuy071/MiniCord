@@ -1,0 +1,57 @@
+
+# Windows
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# === Node ===
+node_modules/
+**/node_modules/
+
+# === Logs ===
+logs/
+*.log
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log
+
+# === Build outputs ===
+dist/
+build/
+.next/
+.parcel-cache/
+out/
+frontend/dist/
+frontend/.vite/
+
+# === Environment ===
+.env
+.env.*.local
+.env.local
+frontend/.env
+frontend/.env.*.local
+frontend/.env.local
+
+# === Testing / coverage ===
+coverage/
+.nyc_output/
+jest.cache
+
+# === IDEs / editors ===
+.vscode/
+.idea/
+
+# === Tools / caches ===
+.eslintcache
+.serverless/
+.cache/
+npm-packages-offline-cache/
+node-repl.history
+frontend/.cache/
+
+# === Misc ===
+*.tgz
+
+# Do not ignore .github by default; workflows should be tracked
+# If you need to exclude a specific file, add it explicitly
+
