@@ -55,3 +55,4 @@ frontend/.cache/
 # Do not ignore .github by default; workflows should be tracked
 # If you need to exclude a specific file, add it explicitly
 
+./github
