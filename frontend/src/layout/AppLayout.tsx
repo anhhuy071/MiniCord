@@ -1,13 +1,19 @@
 import ServerSidebar from "../components/server/ServerSidebar";
 import ChannelSidebar from "../components/channel/ChannelSidebar";
 import MainContent from "../components/main/MainContent";
+import MembersSidebar from "../components/member/MembersSidebar";
+import { useState } from "react";
 
 export default function AppLayout() {
+  const [activeServer, setActiveServer] = useState("DR");
+  const [activeChannel, setActiveChannel] = useState("general");
+
   return (
-    <div className="app-root">
-      <ServerSidebar />
-      <ChannelSidebar />
-      <MainContent />
+    <div className="app-root d-flex vh-100 ">
+      <ServerSidebar activeServer={activeServer} onSelectServer={setActiveServer} />
+      <ChannelSidebar activeChannel={activeChannel} onSelectChannel={setActiveChannel} />
+      <MainContent channelName={activeChannel} />
+      <MembersSidebar />
     </div>
   );
 }
