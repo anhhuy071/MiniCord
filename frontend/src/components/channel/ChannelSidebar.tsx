@@ -1,11 +1,12 @@
 import ChannelItem from "./ChannelItem";
 
 const channelGroups = [
-  { name: "welcome" },
-  { name: "general" },
-  { name: "build-ideas" },
-  { name: "bot-commands" },
-  { name: "memes" },
+
+  { name: "welcome", icon: "👋" },
+  { name: "general", icon: "💬" },
+  { name: "build-ideas", icon: "🧠" },
+  { name: "bot-commands", icon: "🤖" },
+  { name: "memes", icon: "😂" },
 ];
 
 const voiceChannels = ["Lounge", "Garden", "Raid Room"];
@@ -43,6 +44,7 @@ export default function ChannelSidebar({
             <ChannelItem
               key={channel.name}
               name={channel.name}
+              icon={channel.icon}
               active={channel.name === activeChannel}
               onSelect={() => onSelectChannel(channel.name)}
             />

@@ -11,16 +11,16 @@ export default function ServerItem({
 }: ServerItemProps) {
   return (
     <div
-      className={`server-item d-flex align-items-center justify-content-center ${
-        active ? "server-item-active" : ""
-      }`}
+      className={`server-item d-flex justify-content-center align-items-center ${active ? "server-item-active" : ""} `}
       role="button"
       tabIndex={0}
-      aria-pressed={active}
       onClick={onSelect}
-      onKeyDown={(event) => {
+      aria-pressed={active}
+      onKeyDown={(e) => {
         if (!onSelect) return;
-        if (event.key === "Enter" || event.key === " ") onSelect();
+        if (e.key === "Enter" || e.key === " ") {
+          onSelect();
+        }
       }}
     >
       <span>{label}</span>
