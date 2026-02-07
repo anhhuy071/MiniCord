@@ -65,15 +65,21 @@ export default function MainContent({ channelName }: MainContentProps) {
       </section>
 
       <div className="chat-input">
-        <div className="input-prefix">+</div>
+        <div className="input-prefix" aria-hidden="true">
+          <i className="fa-solid fa-plus" />
+        </div>
         <input
           type="text"
           placeholder={`Message #${channelName}`}
           aria-label={`Message #${channelName}`}
         />
         <div className="input-actions">
-          <button className="icon-button">😀</button>
-          <button className="icon-button">📎</button>
+          <button className="icon-button" aria-label="Emoji">
+            <i className="fa-regular fa-face-smile" aria-hidden="true" />
+          </button>
+          <button className="icon-button" aria-label="Attach">
+            <i className="fa-solid fa-paperclip" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </main>

@@ -28,7 +28,7 @@ export default function ServerSidebar({
       </div>
       <div className="server-divider" />
       <button className="server-create" aria-label="Create server">
-        +
+        <i className="fa-solid fa-plus" aria-hidden="true" />
       </button>
     </aside>
   );

@@ -1,7 +1,7 @@
 type ChannelItemProps = {
   name: string;
   prefix?: string;
-  icon?: string;
+  iconClass?: string;
   logoUrl?: string;
   active?: boolean;
   onSelect?: () => void;
@@ -10,12 +10,16 @@ type ChannelItemProps = {
 export default function ChannelItem({
   name,
   prefix = "#",
-  icon,
+  iconClass,
   logoUrl,
   active = false,
   onSelect,
 }: ChannelItemProps) {
-  const fallbackGlyph = icon ?? prefix;
+  const fallbackIcon = iconClass ? (
+    <i className={iconClass} aria-hidden="true" />
+  ) : (
+    <span aria-hidden="true">{prefix}</span>
+  );
 
   return (
     <div
@@ -32,9 +36,11 @@ export default function ChannelItem({
         if (e.key === "Enter" || e.key === " ") onSelect();
       }}
     >
-      {logoUrl ? (<img className="channel-logo" src={logoUrl} alt="" aria-hidden="true" /> ) : (
+      {logoUrl ? (
+        <img className="channel-logo" src={logoUrl} alt="" aria-hidden="true" />
+      ) : (
         <div className="channel-prefix channel-prefix-default" aria-hidden="true">
-          {fallbackGlyph}
+          {fallbackIcon}
         </div>
       )}
       <div className="channel-name mx-2">{name}</div>

@@ -14,10 +14,10 @@ export default function Topbar({ activeServer }: TopbarProps) {
       </div>
       <div className="topbar-right">
         <button className="icon-button" aria-label="Notifications">
-          🔔
+          <i className="fa-solid fa-bell" aria-hidden="true" />
         </button>
         <button className="icon-button" aria-label="Help">
-          ❓
+          <i className="fa-regular fa-circle-question" aria-hidden="true" />
         </button>
         <button className="topbar-profile" aria-label="Account">
           <span className="topbar-avatar">AC</span>

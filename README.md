@@ -1,11 +1,38 @@
 # MiniCord
 
-Chat realtime tối giản với Node.js (Express + Socket.IO) và frontend tĩnh.
+MiniCord là dự án demo giao diện chat kiểu Discord, gồm:
+
+- **Frontend**: React + TypeScript chạy với Vite (tập trung UI/layout)
+- **Backend**: Node.js (Express + Socket.IO) theo mô hình realtime (hiện đang là scaffold)
+
+Mục tiêu của repo là dựng nhanh UI và chuẩn bị nền tảng để nối Socket.IO cho chat theo server/channel.
+
+## Mô tả hệ thống
+
+### Frontend (Vite + React)
+
+- Layout 4 cột: **Server sidebar** → **Channel sidebar** → **Main chat** → **Members sidebar**.
+- Trạng thái chọn server/channel đang nằm ở UI (dữ liệu và message hiện hard-code để demo).
+- UI sử dụng Bootstrap + FontAwesome, style bổ sung trong `frontend/src/assets/css/styles.css`.
+
+### Backend (Express + Socket.IO)
+
+- Dự kiến cung cấp HTTP API (ví dụ `/health`) và Socket.IO để:
+  - client kết nối realtime
+  - join room theo server/channel
+  - gửi/nhận message theo room
+- Cấu hình qua `.env` (xem `backend/.env.example`), kèm CORS giới hạn theo `FRONTEND_ORIGIN`.
+
+### Luồng dữ liệu dự kiến
+
+1. Frontend khởi tạo kết nối Socket.IO đến backend.
+2. Khi người dùng chọn server/channel, client join room tương ứng.
+3. Gửi message → backend broadcast cho các client trong cùng room.
 
 ## Cấu trúc dự án
 
-- `backend/`: server Node.js (ESM), entry `src/server.js`, script trong `package.json`.
-- `frontend/`: client tĩnh (chưa có build tool).
+- `backend/`: server Node.js (ESM). Entry: `src/server.js`. Scripts trong `backend/package.json`.
+- `frontend/`: Vite + React + TypeScript. Entry: `src/main.tsx`. Build output: `frontend/dist/`.
 
 ## Yêu cầu
 
@@ -19,7 +46,7 @@ Chat realtime tối giản với Node.js (Express + Socket.IO) và frontend tĩn
      - `PORT` (mặc định 3000)
      - `FRONTEND_ORIGIN` (ví dụ: `http://localhost:5173`)
 
-2. Cài dependencies và chạy backend:
+1. Cài dependencies và chạy backend:
 
 ```powershell
 cd backend
@@ -40,6 +67,16 @@ Debug bằng Node inspector:
 cd backend
 node --inspect src/server.js
 ```
+
+1. Cài dependencies và chạy frontend (dev):
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Mặc định Vite chạy ở `http://localhost:5173`.
 
 ## Quy ước
 
@@ -75,8 +112,8 @@ app.use(cors({ origin: process.env.FRONTEND_ORIGIN, credentials: true }))
 
 ## Ghi chú
 
-- `backend/src/server.js` có thể đang trống — thêm scaffold tối thiểu (Express + CORS + HTTP server + Socket.IO + `/health`).
-- Chưa có lưu trữ; dùng in-memory hoặc thêm sau (SQLite/file).
+- `backend/src/server.js` hiện mới load biến môi trường (dotenv). Nếu chạy ngay, tiến trình có thể thoát vì chưa có HTTP server/listener.
+- Chưa có lưu trữ; hiện repo phù hợp để demo UI và bổ sung dần phần realtime (in-memory trước, DB sau).
 
  
 
