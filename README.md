@@ -1,128 +1,80 @@
-# MiniCord
+# MiniCord Real-Time Architecture Demo
 
-MiniCord là dự án demo giao diện chat kiểu Discord, gồm:
+MiniCord là dự án demo giao diện chat kiểu Discord, tập trung vào việc mô phỏng kiến trúc realtime (thời gian thực) quy mô lớn trong môi trường ứng dụng web.
 
-- **Frontend**: React + TypeScript chạy với Vite (tập trung UI/layout)
-- **Backend**: Node.js (Express + Socket.IO) theo mô hình realtime (hiện đang là scaffold)
+Dự án bao gồm hai phần:
+- **Frontend**: React + TypeScript chạy với Vite
+- **Backend**: Node.js (Express + Socket.IO)
 
-Mục tiêu của repo là dựng nhanh UI và chuẩn bị nền tảng để nối Socket.IO cho chat theo server/channel.
+Mục tiêu chính của dự án không chỉ dựng UI mà còn để **học và áp dụng best practices** từ hệ thống thời gian thực của Discord (chẳng hạn như quản lý Event-Driven, Heartbeats, State Recovery, và Scalability).
 
-## Mô tả hệ thống
+---
 
-### Frontend (Vite + React)
+## 🏗️ Kiến Trúc Hệ Thống & Phân Tích Hiện Tại
 
-- Layout 4 cột: **Server sidebar** → **Channel sidebar** → **Main chat** → **Members sidebar**.
-- Trạng thái chọn server/channel đang nằm ở UI (dữ liệu và message hiện hard-code để demo).
-- UI sử dụng Bootstrap + FontAwesome, style bổ sung trong `frontend/src/assets/css/styles.css`.
+Dưới đây là phân tích những **điểm chưa tốt (anti-patterns)** trong phiên bản ban đầu và cách kiến trúc hệ thống lớn giải quyết chúng:
 
-### Backend (Express + Socket.IO)
+### 1. Quản Trị Trạng Thái (State Management)
+- ❌ **Cái sai hiện tại:** Backend đang giữ toàn bộ lịch sử tin nhắn trong bộ nhớ (`let messagesByRoom = {}`) và ghi định kỳ ra một file `messages.json`.
+- ⚠️ **Tại sao lại sai?** 
+  - Nếu server crash đột ngột, bạn sẽ mất dữ liệu chưa kịp ghi vào JSON. 
+  - Bộ nhớ RAM của Node.js là hữu hạn. Khi số lượng phòng chat hàng trăm ngàn, server sẽ bị sập vì quá tải (Out of Memory - OOM).
+  - Khởi tạo File API (như `fs.writeFile`) trên một thread chính (Event Loop) có thể gây nghẽn cổ chai (block event loop) khi dữ liệu JSON quá lớn.
+- ✅ **Best Practice (Kiểu Discord):** Sử dụng Cơ sở dữ liệu phân tán (Cassandra/ScyllaDB) cho lưu trữ bền vững. Đồng thời, dùng cơ sở dữ liệu In-Memory nhẹ như **Redis** để cache các tin nhắn gần nhất nhằm phản hồi nhanh.
 
-- Dự kiến cung cấp HTTP API (ví dụ `/health`) và Socket.IO để:
-  - client kết nối realtime
-  - join room theo server/channel
-  - gửi/nhận message theo room
-- Cấu hình qua `.env` (xem `backend/.env.example`), kèm CORS giới hạn theo `FRONTEND_ORIGIN`.
+### 2. Khả Năng Mở Rộng Theo Chiều Ngang (Horizontal Scaling)
+- ❌ **Cái sai hiện tại:** Setup Socket.IO hiện tại mặc định client gắn rễ vào một Node process duy nhất. Nếu lượng người dùng tăng lên, bạn bật 3 server Node.js lên thì những User ở Server A gửi tin nhắn, User ở Server B sẽ **không bao giờ nhận được**.
+- ✅ **Best Practice:** Cần tích hợp một **Pub/Sub Broker** (như Redis Pub/Sub, RabbitMQ, Kafka). Khi User ở Server A gửi tin vào Room 1, Server A sẽ bắn một event Pub/Sub cho hệ thống biết. Server B (đang giữ kết nối Socket cho User C cũng ở chung Room 1) sẽ nhận Pub/Sub event đó và bắn tới User C. Socket.IO có hỗ trợ sẵn **Redis Adapter** giải quyết vấn đề này.
 
-### Luồng dữ liệu dự kiến
+### 3. Phục Hồi Kết Nối (Connection Recovery) & Heartbeats
+- ❌ **Thiếu sót:** Khi client bị rớt mạng và kết nối lại sau 2 phút, họ có thể bỏ lỡ 10 tin nhắn mới. Thiết kế hiện tại bắt họ fetch lại toàn bộ lịch sử để đồng bộ lại (tốn data và server load).
+- ✅ **Best Practice:** Giữ lại một bộ đếm hoặc Event ID. Khi mất kết nối và nối lại, Client sẽ gửi sequence id cuối cùng mà nó bắt được, và server chỉ "replay" lại những sự kiện đã lỡ (catch-up mechanism), thay vì gửi lại cục history to đùng.
 
-1. Frontend khởi tạo kết nối Socket.IO đến backend.
-2. Khi người dùng chọn server/channel, client join room tương ứng.
-3. Gửi message → backend broadcast cho các client trong cùng room.
+---
 
-## Cấu trúc dự án
+## 🛠 Cấu Trúc Dự Án
 
-- `backend/`: server Node.js (ESM). Entry: `src/server.js`. Scripts trong `backend/package.json`.
-- `frontend/`: Vite + React + TypeScript. Entry: `src/main.tsx`. Build output: `frontend/dist/`.
+- `backend/`: server Node.js (ESM). Chứa logic WebSocket. Entry point: `src/server.js`.
+- `frontend/`: Ứng dụng React Vite TypeScript. Entry point: `src/main.tsx`. Build files nằm tại `frontend/dist/`.
 
-## Yêu cầu
+## 🚀 Requirement & Cài Đặt (Quick Start)
 
-- Node.js 18+ (khuyến nghị)
-- PowerShell (dùng cú pháp PowerShell)
+### Yêu Cầu
+- Node.js 18+ 
+- PowerShell (hoặc Terminal tương tự)
 
-## Cách chạy nhanh (Quick Start)
+### 1. Khởi động Backend
+- Sao chép file `.env`: 
+  ```powershell
+  cp backend/.env.example backend/.env
+  ```
+- Cài Node packages và chạy server (mặc định PORT 3000):
+  ```powershell
+  cd backend
+  npm install
+  npm run dev
+  ```
 
-1. Tạo file môi trường cho backend:
-   - Sao chép `backend/.env.example` → `backend/.env` và chỉnh:
-     - `PORT` (mặc định 3000)
-     - `FRONTEND_ORIGIN` (ví dụ: `http://localhost:5173`)
+### 2. Khởi động Frontend
+- Từ root repo, mở terminal riêng:
+  ```powershell
+  cd frontend
+  npm install
+  npm run dev
+  ```
+- Mặc định UI sẽ chạy ở `http://localhost:5173`.
 
-1. Cài dependencies và chạy backend:
+---
 
-```powershell
-cd backend
-npm install
-npm run dev
-```
+## 💻 Quy Ước Dev
 
-Muốn chạy dạng start:
+- Cơ chế Module: **ESM (`import`/`export`)**.
+- Quản lý Event: Luôn chia nhóm bằng tên miền, ví dụ `room:join`, `chat:send`. Tránh để tên event lẫn lộn. Không gửi raw text mà gửi objects có schema rõ ràng (`{ event, data, timestamp }`).
+- Mã Định Danh ID: Dùng `UUID` để tạo unique message ID.
+- Xử lý Biến Môi Trường: Qua thư viện `dotenv` -> `process.env`.
+- Cross-Origin (CORS): Yêu cầu strict, backend chỉ nhận request từ `FRONTEND_ORIGIN` định sẵn.
 
-```powershell
-cd backend
-npm start
-```
+---
 
-Debug bằng Node inspector:
-
-```powershell
-cd backend
-node --inspect src/server.js
-```
-
-1. Cài dependencies và chạy frontend (dev):
-
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-Mặc định Vite chạy ở `http://localhost:5173`.
-
-## Quy ước
-
-- ESM: `import`/`export`
-- `dotenv` → `process.env` (giữ secrets trong `.env`)
-- CORS: chỉ định một `FRONTEND_ORIGIN`
-- Socket.IO trong `server.js`: `io.on('connection', ...)`
-- ID: `uuid` → `import { v4 as uuidv4 } from 'uuid'`
-
-## Ví dụ server
-
-Route kiểm tra:
-
-```js
-app.get('/health', (req, res) => res.json({ ok: true }))
-```
-
-Socket.IO:
-
-```js
-io.on('connection', s => {
-  console.log('connected', s.id)
-  s.on('disconnect', () => console.log('disconnected', s.id))
-})
-```
-
-CORS:
-
-```js
-import cors from 'cors'
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN, credentials: true }))
-```
-
-## Ghi chú
-
-- `backend/src/server.js` hiện mới load biến môi trường (dotenv). Nếu chạy ngay, tiến trình có thể thoát vì chưa có HTTP server/listener.
-- Chưa có lưu trữ; hiện repo phù hợp để demo UI và bổ sung dần phần realtime (in-memory trước, DB sau).
-
- 
-
-## Khắc phục sự cố
-
-- CORS: kiểm tra `FRONTEND_ORIGIN` khớp origin của frontend (không có `/` cuối)
-- Lỗi khởi động: kiểm tra Node (`node -v`), cài lại dependencies
-
-## License
-
-ISC
-
+## Quyền Sở Hữu / License
+Dự án được phân phối dưới giấy phép **ISC**.

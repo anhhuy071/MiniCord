@@ -1,42 +1,31 @@
-const messages = [
-  {
-    id: 1,
-    author: "Skyline",
-    initials: "SK",
-    role: "Community Lead",
-    time: "Today at 3:01 PM",
-    content:
-      "Welcome to MiniCord! This is the space to prototype, collaborate, and chat while we build.",
-  },
-  {
-    id: 2,
-    author: "Nova",
-    initials: "NV",
-    role: "Product Designer",
-    time: "Today at 3:15 PM",
-    content: "Check out the new Discord-style layout, let me know if the spacing feels right.",
-  },
-  {
-    id: 3,
-    author: "Lumen",
-    initials: "LM",
-    role: "Engineer",
-    time: "Today at 3:22 PM",
-    content:
-      "Just dropped a quick demo of how the message list renders. Planning to wire up WebSocket next.",
-  },
-];
+import { useState } from "react";
+import { useSocket } from "../../hooks/useSocket";
 
 type MainContentProps = {
   channelName: string;
 };
 
 export default function MainContent({ channelName }: MainContentProps) {
+  const { messages, isConnected, sendMessage, error } = useSocket(channelName);
+  const [inputValue, setInputValue] = useState("");
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    sendMessage(inputValue, "Local User"); // Hardcoding an author name for demo purposes
+    setInputValue("");
+  };
+
   return (
     <main className="main-content d-flex flex-column">
       <div className="chat-header">
         <div>
-          <p className="channel-title"># {channelName}</p>
+          <p className="channel-title">
+            # {channelName} 
+            <span style={{ fontSize: "12px", marginLeft: "10px", color: isConnected ? "#43b581" : "#f04747" }}>
+              {isConnected ? "● Connected" : "○ Disconnected"}
+            </span>
+          </p>
           <p className="channel-topic">A place for quick chat, design reviews, and watercooler moments.</p>
         </div>
         <div className="chat-header-actions">
@@ -47,16 +36,19 @@ export default function MainContent({ channelName }: MainContentProps) {
       </div>
 
       <section className="chat-messages">
+        {error && <div style={{ color: "red", padding: "10px", textAlign: "center" }}>{error}</div>}
+        
         {messages.map((message) => (
           <article key={message.id} className="chat-message">
-            <div className="message-avatar">{message.initials}</div>
+            <div className="message-avatar">
+              {message.author.substring(0, 2).toUpperCase()}
+            </div>
             <div className="message-body">
               <div className="message-heading">
                 <div>
                   <span className="message-author">{message.author}</span>
-                  <span className="message-role">{message.role}</span>
                 </div>
-                <span className="message-time">{message.time}</span>
+                <span className="message-time">{new Date(message.createdAt).toLocaleTimeString()}</span>
               </div>
               <p className="message-text">{message.content}</p>
             </div>
@@ -64,23 +56,26 @@ export default function MainContent({ channelName }: MainContentProps) {
         ))}
       </section>
 
-      <div className="chat-input">
-        <div className="input-prefix" aria-hidden="true">
-          <i className="fa-solid fa-plus" />
-        </div>
-        <input
-          type="text"
-          placeholder={`Message #${channelName}`}
-          aria-label={`Message #${channelName}`}
-        />
-        <div className="input-actions">
-          <button className="icon-button" aria-label="Emoji">
-            <i className="fa-regular fa-face-smile" aria-hidden="true" />
-          </button>
-          <button className="icon-button" aria-label="Attach">
-            <i className="fa-solid fa-paperclip" aria-hidden="true" />
-          </button>
-        </div>
+      <div className="chat-input border-top-0 pt-3">
+        <form onSubmit={handleSend} style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+          <div className="input-prefix" aria-hidden="true">
+            <i className="fa-solid fa-plus" />
+          </div>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={`Message #${channelName}`}
+            aria-label={`Message #${channelName}`}
+            style={{ flex: 1 }}
+            disabled={!isConnected}
+          />
+          <div className="input-actions" style={{ position: 'relative', right: 0 }}>
+            <button type="submit" className="icon-button" aria-label="Send Message" disabled={!isConnected || !inputValue.trim()}>
+              <i className="fa-solid fa-paper-plane" aria-hidden="true" />
+            </button>
+          </div>
+        </form>
       </div>
     </main>
   );

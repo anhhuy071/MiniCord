@@ -15,7 +15,6 @@ export default function MemberItem({
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
-        // Unusual: we don't have click behavior yet, but we still keep keyboard affordance consistent.
         if (event.key === "Enter" || event.key === " ") event.currentTarget.click();
       }}
     >
