@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  username  String    @unique
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  servers   ServerMember[]
+  messages  Message[]
+}
+
+model Server {
+  id        String    @id @default(uuid())
+  name      String
+  imageUrl  String?
+  ownerId   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  channels  Channel[]
+  members   ServerMember[]
+}
+
+model ServerMember {
+  id        String    @id @default(uuid())
+  role      String    @default("MEMBER")
+  userId    String
+  serverId  String
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serverId])
+}
+
+model Channel {
+  id        String    @id @default(uuid())
+  name      String
+  type      String    @default("TEXT")
+  serverId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  messages  Message[]
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  content   String
+  fileUrl   String?
+  authorId  String
+  channelId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  channel   Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
