@@ -64,6 +64,14 @@ Dưới đây là phân tích những **điểm chưa tốt (anti-patterns)** tr
   ```
 - Mặc định UI sẽ chạy ở `http://localhost:5173`.
 
+### 3. Kiểm thử API bằng Postman
+Để kiểm tra và thử nghiệm các API RESTful của dự án, chúng ta sẽ sử dụng **Postman**:
+1. Đảm bảo Backend đã được khởi động thành công (thông thường chạy tại `http://localhost:3000` hoặc cổng được cấu hình trong `.env`).
+2. Tải và cài đặt ứng dụng [Postman](https://www.postman.com/downloads/).
+3. Tạo một Collection mới trong Postman để gom nhóm các API của MiniCord.
+4. (Tuỳ chọn) Thiết lập Environment trong Postman với biến `{{BASE_URL}}` (ví dụ: `http://localhost:3000/api`) để tái sử dụng nhanh chóng cho các API request.
+5. Đối với các API yêu cầu xác thực (nếu có), bạn có thể lưu trữ token (JWT) vào biến môi trường của Postman và đính kèm vào phần `Authorization: Bearer <token>` trong Header.
+
 ---
 
 ## 💻 Quy Ước Dev

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
+import { RequireAuth, AuthRequest } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -77,6 +78,32 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Ví dụ về một Route được bảo vệ (Protected Route) bằng middleware RequireAuth
+router.get('/me', RequireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    // Nhờ có auth.middleware.ts, req.user ở đây đã có sẵn thông tin userId giải mã từ token
+    const userId = (req.user as any).userId;
+    
+    // Tìm thông tin user trong database, không trả về trường password
+    const user = await prisma.user.findUnique({ 
+      where: { id: userId },
+      select: { id: true, username: true, email: true } 
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      message: 'Bạn đã truy cập thành công vào route được bảo mật!',
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error retrieving profile' });
   }
 });
 

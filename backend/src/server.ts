@@ -1,9 +1,9 @@
 import http from "node:http";
 import express from "express";
 import cors from "cors";
+import authRoutes from './routes/auth.routes.js';
 
 import { Server as SocketIOServer } from "socket.io";
-import authRoutes from './routes/auth.routes.js';
 import prisma from './lib/prisma.js';
 import jwt from 'jsonwebtoken';
 
