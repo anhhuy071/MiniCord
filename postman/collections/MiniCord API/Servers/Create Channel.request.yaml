@@ -1,0 +1,16 @@
+$kind: http-request
+name: Create Channel
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/servers/{{serverId}}/channels'
+description: Creates a new channel in a server. Only OWNER or ADMIN roles can create channels.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "announcements",
+      "type": "TEXT"
+    }

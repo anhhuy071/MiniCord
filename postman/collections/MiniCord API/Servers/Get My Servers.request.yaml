@@ -1,0 +1,6 @@
+$kind: http-request
+name: Get My Servers
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/servers'
+description: Returns all servers the authenticated user is a member of, including their channels.

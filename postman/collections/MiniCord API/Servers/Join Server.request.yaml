@@ -1,0 +1,6 @@
+$kind: http-request
+name: Join Server
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/servers/{{serverId}}/join'
+description: Join an existing server as a MEMBER. Returns an error if already a member.

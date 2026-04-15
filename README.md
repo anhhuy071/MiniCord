@@ -1,88 +1,112 @@
-# MiniCord Real-Time Architecture Demo
+# MiniCord — Real-Time Architecture Demo
 
-MiniCord là dự án demo giao diện chat kiểu Discord, tập trung vào việc mô phỏng kiến trúc realtime (thời gian thực) quy mô lớn trong môi trường ứng dụng web.
+MiniCord is a Discord-inspired chat application demo focused on simulating a large-scale real-time architecture in a modern web environment.
 
-Dự án bao gồm hai phần:
-- **Frontend**: React + TypeScript chạy với Vite
-- **Backend**: Node.js (Express + Socket.IO)
+The project is composed of three main parts:
 
-Mục tiêu chính của dự án không chỉ dựng UI mà còn để **học và áp dụng best practices** từ hệ thống thời gian thực của Discord (chẳng hạn như quản lý Event-Driven, Heartbeats, State Recovery, và Scalability).
+- **Frontend**: React + TypeScript + Vite
+- **Backend**: Node.js (Express REST API · Socket.IO WebSockets · Prisma ORM · SQLite)
+- **Infrastructure / DevOps**: Docker & LocalStack *(local AWS S3 simulation for file/avatar uploads without cloud costs)*
 
----
-
-## 🏗️ Kiến Trúc Hệ Thống & Phân Tích Hiện Tại
-
-Dưới đây là phân tích những **điểm chưa tốt (anti-patterns)** trong phiên bản ban đầu và cách kiến trúc hệ thống lớn giải quyết chúng:
-
-### 1. Quản Trị Trạng Thái (State Management)
-- ❌ **Cái sai hiện tại:** Backend đang giữ toàn bộ lịch sử tin nhắn trong bộ nhớ (`let messagesByRoom = {}`) và ghi định kỳ ra một file `messages.json`.
-- ⚠️ **Tại sao lại sai?** 
-  - Nếu server crash đột ngột, bạn sẽ mất dữ liệu chưa kịp ghi vào JSON. 
-  - Bộ nhớ RAM của Node.js là hữu hạn. Khi số lượng phòng chat hàng trăm ngàn, server sẽ bị sập vì quá tải (Out of Memory - OOM).
-  - Khởi tạo File API (như `fs.writeFile`) trên một thread chính (Event Loop) có thể gây nghẽn cổ chai (block event loop) khi dữ liệu JSON quá lớn.
-- ✅ **Best Practice (Kiểu Discord):** Sử dụng Cơ sở dữ liệu phân tán (Cassandra/ScyllaDB) cho lưu trữ bền vững. Đồng thời, dùng cơ sở dữ liệu In-Memory nhẹ như **Redis** để cache các tin nhắn gần nhất nhằm phản hồi nhanh.
-
-### 2. Khả Năng Mở Rộng Theo Chiều Ngang (Horizontal Scaling)
-- ❌ **Cái sai hiện tại:** Setup Socket.IO hiện tại mặc định client gắn rễ vào một Node process duy nhất. Nếu lượng người dùng tăng lên, bạn bật 3 server Node.js lên thì những User ở Server A gửi tin nhắn, User ở Server B sẽ **không bao giờ nhận được**.
-- ✅ **Best Practice:** Cần tích hợp một **Pub/Sub Broker** (như Redis Pub/Sub, RabbitMQ, Kafka). Khi User ở Server A gửi tin vào Room 1, Server A sẽ bắn một event Pub/Sub cho hệ thống biết. Server B (đang giữ kết nối Socket cho User C cũng ở chung Room 1) sẽ nhận Pub/Sub event đó và bắn tới User C. Socket.IO có hỗ trợ sẵn **Redis Adapter** giải quyết vấn đề này.
-
-### 3. Phục Hồi Kết Nối (Connection Recovery) & Heartbeats
-- ❌ **Thiếu sót:** Khi client bị rớt mạng và kết nối lại sau 2 phút, họ có thể bỏ lỡ 10 tin nhắn mới. Thiết kế hiện tại bắt họ fetch lại toàn bộ lịch sử để đồng bộ lại (tốn data và server load).
-- ✅ **Best Practice:** Giữ lại một bộ đếm hoặc Event ID. Khi mất kết nối và nối lại, Client sẽ gửi sequence id cuối cùng mà nó bắt được, và server chỉ "replay" lại những sự kiện đã lỡ (catch-up mechanism), thay vì gửi lại cục history to đùng.
+The primary goal is not just to replicate Discord's UI, but to **apply real-world best practices** from Discord's real-time systems — including event-driven messaging, heartbeats, connection recovery, and horizontal scalability.
 
 ---
 
-## 🛠 Cấu Trúc Dự Án
+## 🚀 Quick Start
 
-- `backend/`: server Node.js (ESM). Chứa logic WebSocket. Entry point: `src/server.js`.
-- `frontend/`: Ứng dụng React Vite TypeScript. Entry point: `src/main.tsx`. Build files nằm tại `frontend/dist/`.
+### Prerequisites
 
-## 🚀 Requirement & Cài Đặt (Quick Start)
+- Node.js 18+
+- PowerShell (or any equivalent terminal)
 
-### Yêu Cầu
-- Node.js 18+ 
-- PowerShell (hoặc Terminal tương tự)
+### 1. Start the Backend
 
-### 1. Khởi động Backend
-- Sao chép file `.env`: 
-  ```powershell
-  cp backend/.env.example backend/.env
-  ```
-- Cài Node packages và chạy server (mặc định PORT 3000):
-  ```powershell
-  cd backend
-  npm install
-  npm run dev
-  ```
+Copy the environment file (contains JWT secret, database URL):
 
-### 2. Khởi động Frontend
-- Từ root repo, mở terminal riêng:
-  ```powershell
-  cd frontend
-  npm install
-  npm run dev
-  ```
-- Mặc định UI sẽ chạy ở `http://localhost:5173`.
+```powershell
+cp backend/.env.example backend/.env
+```
 
-### 3. Kiểm thử API bằng Postman
-Để kiểm tra và thử nghiệm các API RESTful của dự án, chúng ta sẽ sử dụng **Postman**:
-1. Đảm bảo Backend đã được khởi động thành công (thông thường chạy tại `http://localhost:3000` hoặc cổng được cấu hình trong `.env`).
-2. Tải và cài đặt ứng dụng [Postman](https://www.postman.com/downloads/).
-3. Tạo một Collection mới trong Postman để gom nhóm các API của MiniCord.
-4. (Tuỳ chọn) Thiết lập Environment trong Postman với biến `{{BASE_URL}}` (ví dụ: `http://localhost:3000/api`) để tái sử dụng nhanh chóng cho các API request.
-5. Đối với các API yêu cầu xác thực (nếu có), bạn có thể lưu trữ token (JWT) vào biến môi trường của Postman và đính kèm vào phần `Authorization: Bearer <token>` trong Header.
+Install dependencies, push the database schema, seed sample data, and start the dev server (port 3000):
 
----
+```powershell
+cd backend
+npm install
+npx prisma db push
+npm run seed
+npm run dev
+```
 
-## 💻 Quy Ước Dev
+### 2. Start the Frontend
 
-- Cơ chế Module: **ESM (`import`/`export`)**.
-- Quản lý Event: Luôn chia nhóm bằng tên miền, ví dụ `room:join`, `chat:send`. Tránh để tên event lẫn lộn. Không gửi raw text mà gửi objects có schema rõ ràng (`{ event, data, timestamp }`).
-- Mã Định Danh ID: Dùng `UUID` để tạo unique message ID.
-- Xử lý Biến Môi Trường: Qua thư viện `dotenv` -> `process.env`.
-- Cross-Origin (CORS): Yêu cầu strict, backend chỉ nhận request từ `FRONTEND_ORIGIN` định sẵn.
+Open a separate terminal from the project root:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The UI will be available at `http://localhost:5173` by default.
+
+### 3. Testing the API with Postman
+
+- Set your Postman environment's **Base URL** to `http://localhost:3000/api`.
+- After logging in or registering via the frontend, copy the **JWT token** from `localStorage`.
+- For protected endpoints, attach the token as an `Authorization: Bearer <token>` request header.
 
 ---
 
-## Quyền Sở Hữu / License
-Dự án được phân phối dưới giấy phép **ISC**.
+## 🗺 Project Roadmap
+
+The project is executed in focused phases to keep development organized. Here is the latest status:
+
+### ✅ Phase 1 — Core Foundation & Database *(Complete)*
+
+- **Database Design**: Defined the Prisma schema (`User`, `Server`, `Channel`, `ServerMember`, `Message`, `Conversation`).
+- **Core REST API**: Established base routing and standardized JSON response helpers.
+- **Security & Authorization**: Implemented JWT authentication and an auth middleware guard.
+- **Database Seeding**: Built a `seed.ts` script to automatically populate the database with sample users on setup.
+
+### ✅ Phase 2 — Authentication & UI Skeleton *(Complete)*
+
+- **Frontend Auth UI**: Designed a polished Login/Register form with a modern dark mode aesthetic.
+- **State Management**: Integrated `AuthContext` across the full React app to persist session state.
+- **App Layout**: Completed the five-panel grid layout (`ServerSidebar`, `ChannelSidebar`, `Topbar`, `MainContent`, `MembersSidebar`) as React components — **currently using hardcoded mock data**.
+- **DM Backend API**: Implemented the full routing layer for Direct Messaging (1-to-1 messaging).
+
+### ⏳ Phase 3 — Servers, Channels & Role Permissions *(In Progress)*
+
+- [x] **Backend — Server API**: Built server management endpoints (`POST /servers`, `GET /servers`, `POST /servers/:id/join`).
+- [x] **Backend — Channel API**: Created a permission-gated channel creation endpoint (`POST /servers/:id/channels`) restricted to Owners and Admins.
+- [ ] **Frontend — Data Fetching**: Refactor `AppLayout` to fetch real servers and channels from the API based on the logged-in user, replacing all mock data.
+- [ ] **Frontend — Modal Forms**: Build UI modals allowing users to Create or Join a server.
+- [ ] **Frontend — Members Panel**: Display the member list for a given server, grouped by role (Owner / Admin / Member).
+- [ ] **WebSocket Integration**: Align the frontend's channel-switching UI with the backend's `room:join` Socket.IO event.
+
+### 📅 Phase 4 — Infrastructure & Cloud Simulation
+
+- Containerize the full application using **Docker**.
+- Configure **LocalStack** in Docker to replace raw disk storage; update the backend to upload attachments via the AWS S3 SDK.
+
+### 📅 Phase 5 — Scalability
+
+- Set up **Redis Pub/Sub via Socket.IO Adapter** to enable the app to run across multiple backend nodes simultaneously without message sync issues.
+- Replace simple message history fetching with a Discord-style **event catch-up mechanism** to reduce server RAM consumption at scale.
+
+---
+
+## 💻 Development Conventions
+
+| Convention | Detail |
+|---|---|
+| **Module system** | ESM (`import` / `export`) throughout |
+| **WebSocket event naming** | Use namespaced strings (e.g. `room:join`, `chat:send`). Always pass structured JSON — never raw serialized strings. |
+| **IDs** | All entity IDs use **UUIDs** generated by the database (instead of sequential integers) to prevent data scraping. |
+| **CORS & Environment** | Only origins listed in `.env` (`FRONTEND_ORIGIN`) are accepted by the server. Never hardcode URLs. |
+
+---
+
+## License
+
+This project is open-sourced under the **ISC License**.

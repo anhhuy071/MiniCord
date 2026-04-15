@@ -32,6 +32,13 @@ frontend/.env
 frontend/.env.*.local
 frontend/.env.local
 
+# === Database files ===
+# SQLite dev databases — may contain seeded user data; never commit these
+**/*.db
+**/*.db-shm
+**/*.db-wal
+backend/prisma/dev.db
+
 # === Testing / coverage ===
 coverage/
 .nyc_output/
@@ -51,4 +58,7 @@ frontend/.cache/
 
 # === Misc ===
 *.tgz
+
+
+
 

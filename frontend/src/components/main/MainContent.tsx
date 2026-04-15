@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { useSocket } from "../../hooks/useSocket";
+import { useAuth } from "../../context/AuthContext";
 
 type MainContentProps = {
   channelName: string;
 };
 
 export default function MainContent({ channelName }: MainContentProps) {
-  const { messages, isConnected, sendMessage, error } = useSocket(channelName);
+  const { token, user } = useAuth();
+  const { messages, isConnected, sendMessage, error } = useSocket(channelName, token);
   const [inputValue, setInputValue] = useState("");
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
-    sendMessage(inputValue, "Local User"); // Hardcoding an author name for demo purposes
+    sendMessage(inputValue, user?.username || "Local User");
     setInputValue("");
   };
 

@@ -1,0 +1,16 @@
+$kind: collection
+name: MiniCord API
+description: |-
+  REST API collection for MiniCord — a Discord-like real-time chat application. Backend runs on Express + Socket.IO with JWT authentication. Base URL: `{{baseUrl}}` (default: `http://localhost:3000`).
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{authToken}}'
+variables:
+  - key: baseUrl
+    value: 'http://localhost:3000'
+  - key: authToken
+    value: ''
+  - key: serverId
+    value: ''

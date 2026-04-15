@@ -1,8 +1,10 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { signToken } from '../utils/jwt.util.js';
 import prisma from '../lib/prisma.js';
 import { RequireAuth, AuthRequest } from '../middleware/auth.middleware.js';
+import { sendSuccess, sendError } from '../utils/response.util.js';
 
 const router = express.Router();
 
@@ -11,7 +13,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     const { username, email, password } = req.body;
     
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return sendError(res, 'All fields are required', 400);
     }
     
     // Check if user exists
@@ -20,7 +22,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     });
     
     if (existingUser) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      return sendError(res, 'Username or email already exists', 400);
     }
     
     // Hash password
@@ -36,16 +38,15 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     });
     
     // Generate token
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
+    const token = signToken({ userId: user.id });
     
-    res.status(201).json({
-      message: 'User created successfully',
-      user: { id: user.id, username: user.username, email: user.email },
-      token
-    });
+    sendSuccess(res, { 
+      user: { id: user.id, username: user.username, email: user.email }, 
+      token 
+    }, 'User created successfully', 201);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Server error during registration' });
+    sendError(res, 'Server error during registration', 500);
   }
 });
 
@@ -54,30 +55,29 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
     const { email, password } = req.body;
     
     if (!email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return sendError(res, 'All fields are required', 400);
     }
     
     const user = await prisma.user.findUnique({ where: { email } });
     
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 400);
     }
     
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 400);
     }
     
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
+    const token = signToken({ userId: user.id });
     
-    res.json({
-      message: 'Logged in successfully',
+    sendSuccess(res, {
       user: { id: user.id, username: user.username, email: user.email },
       token
-    });
+    }, 'Logged in successfully', 200);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Server error during login' });
+    sendError(res, 'Server error during login', 500);
   }
 });
 
@@ -94,16 +94,13 @@ router.get('/me', RequireAuth, async (req: AuthRequest, res: Response): Promise<
     });
     
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return sendError(res, 'User not found', 404);
     }
     
-    res.json({
-      message: 'Bạn đã truy cập thành công vào route được bảo mật!',
-      user
-    });
+    sendSuccess(res, user, 'Bạn đã truy cập thành công vào route được bảo mật!', 200);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Server error retrieving profile' });
+    sendError(res, 'Server error retrieving profile', 500);
   }
 });
 
