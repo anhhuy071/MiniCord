@@ -1,64 +1,67 @@
-
-# Windows
+# === OS Files ===
+.DS_Store
 Thumbs.db
 desktop.ini
 ehthumbs.db
 
 # === Node ===
 node_modules/
-**/node_modules/
-
-# === Logs ===
-logs/
-*.log
 npm-debug.log*
-yarn-error.log
-pnpm-debug.log
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm/
 
-# === Build outputs ===
+# === Build / Outputs ===
 dist/
+dist-ssr/
 build/
+out/
 .next/
 .parcel-cache/
-out/
-frontend/dist/
-frontend/.vite/
+.vite/
 
 # === Environment ===
 .env
-.env.*.local
-.env.local
-frontend/.env
-frontend/.env.*.local
-frontend/.env.local
+.env.*
+!.env.example
+*.local
 
-# === Database files ===
-# SQLite dev databases — may contain seeded user data; never commit these
-**/*.db
-**/*.db-shm
-**/*.db-wal
-backend/prisma/dev.db
+# === Database ===
+*.db
+*.db-shm
+*.db-wal
 
-# === Testing / coverage ===
+# === Testing / Coverage ===
 coverage/
 .nyc_output/
 jest.cache
 
-# === IDEs / editors ===
-.vscode/
+# === IDEs / Editors ===
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# === Tools / caches ===
+# === Tools / Caches ===
 .eslintcache
 .serverless/
 .cache/
 npm-packages-offline-cache/
 node-repl.history
-frontend/.cache/
 
 # === Misc ===
 *.tgz
+logs/
+*.log
 
-
-
-
+# === Backend ===
+backend/src/generated/prisma/

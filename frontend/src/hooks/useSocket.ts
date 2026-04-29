@@ -5,14 +5,14 @@ const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 type Message = {
   id: string;
+  channelId: string;
   room: string;
   author: string;
   content: string;
   createdAt: string;
 };
 
-
-export function useSocket(roomId: string, token: string | null) {
+export function useSocket(channelId: string | undefined, token: string | null) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,94 +20,114 @@ export function useSocket(roomId: string, token: string | null) {
 
   // Connection Lifecycle Management
   useEffect(() => {
-    // Prevent multiple connections
-    if (socketRef.current) return;
-
-    console.log(`[Socket] Initializing connection to ${SOCKET_URL}...`);
+    let socket = socketRef.current;
     
-    // Connect with auth tokens and configure retries (reconnection is true by default)
-    const socket = io(SOCKET_URL, {
-      auth: { token },
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-    });
-
-    socketRef.current = socket;
-
-    // === Lifecycle Events ===
-    socket.on('connect', () => {
-      console.log(`[Socket] Connected! (ID: ${socket.id})`);
-      setIsConnected(true);
-      setError(null);
+    if (!socket) {
+      console.log(`[Socket] Initializing connection to ${SOCKET_URL}...`);
       
-      // ✅ Best Practice: When connected (or reconnected), explicitly ask to join the room
-      // and fetch ONLY the events we missed (Catch-up mechanism - though backend currently sends all)
-      socket.emit('room:join', { room: roomId });
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.warn(`[Socket] Disconnected: ${reason}`);
-      setIsConnected(false);
-      // If server disconnected us dynamically, we might need to reconnect manually.
-      // E.g., if token expired, we would refresh token here, then socket.connect()
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error(`[Socket] Connection error:`, err);
-      setError('Failed to connect to chat server.');
-    });
-
-    // === App-Specific Events ===
-    socket.on('room:history', (data: { room: string; messages: Message[] }) => {
-      console.log(`[Socket] Loaded history for room ${data.room}`);
-      setMessages(data.messages);
-    });
-
-    socket.on('chat:message', (data: { room: string; message: Message }) => {
-      // ✅ Best Practice: Immutable state updates
-      setMessages((prev) => {
-        if (prev.some(m => m.id === data.message.id)) return prev;
-        return [...prev, data.message];
+      const newSocket = io(SOCKET_URL, {
+        auth: { token },
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
       });
-    });
 
-    // Handle Direct Messaging
-    socket.on('dm:message', (data: { conversationId: string; message: Message }) => {
-      setMessages((prev) => {
-        if (prev.some(m => m.id === data.message.id)) return prev;
-        return [...prev, data.message];
+      socket = newSocket;
+      socketRef.current = newSocket;
+
+      // === Lifecycle Events ===
+      newSocket.on('connect', () => {
+        console.log(`[Socket] Connected! (ID: ${newSocket.id})`);
+        setIsConnected(true);
+        setError(null);
       });
-    });
 
-    socket.on('dm:notification', (data: { conversationId: string; message: Message }) => {
-      // Logic to show a toast notification if user is not in the active conversation
-      console.log(`[Notification] New DM from ${data.message.author}: ${data.message.content}`);
-    });
+      newSocket.on('disconnect', (reason) => {
+        console.warn(`[Socket] Disconnected: ${reason}`);
+        setIsConnected(false);
+      });
 
-    return () => {
-      // Cleanup on unmount (If we leave the chat page entirely)
-      console.log(`[Socket] Tearing down connection...`);
-      socket.disconnect();
-      socketRef.current = null;
+      newSocket.on('connect_error', (err) => {
+        console.error(`[Socket] Connection error:`, err);
+        setError('Failed to connect to chat server.');
+      });
+      
+      // === App-Specific Events ===
+      newSocket.on('chat:message', (data: { channelId: string; room: string; message: Message }) => {
+        setMessages((prev) => {
+          if (data.channelId !== channelId) return prev;
+          if (prev.some(m => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+      });
+
+      newSocket.on('dm:message', (data: { conversationId: string; message: Message }) => {
+        setMessages((prev) => {
+          if (prev.some(m => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+      });
+
+      newSocket.on('dm:notification', (data: { conversationId: string; message: Message }) => {
+        console.log(`[Notification] New DM from ${data.message.author}: ${data.message.content}`);
+      });
+    }
+
+    // Now, ANY time the channelId or the socket reconnects, we want to fetch history and join the room.
+    // We attach dynamic listeners that *depend on channelId* or just handle it cleanly.
+    
+    // Clear old messages when joining a new room
+    setMessages([]);
+
+    if (!channelId) return;
+
+    const handleRoomHistory = (data: { channelId: string; room: string; messages: Message[] }) => {
+      // Process history ONLY if it matches the current active channel.
+      if (data.channelId === channelId) {
+        console.log(`[Socket] Loaded history for channel ${data.channelId}`);
+        setMessages(data.messages);
+      }
     };
-  }, [roomId, token]);
+
+    socket.on('room:history', handleRoomHistory);
+
+    if (socket && socket.connected) {
+      console.log(`[Socket] Emitting room:join for ${channelId}`);
+      socket.emit('room:join', { channelId });
+    }
+
+    // Since we don't want to destroy the entire Socket connection when a user just clicks a new channel...
+    return () => {
+      socket?.off('room:history', handleRoomHistory);
+    };
+  }, [channelId, token]);
+
+  // Handle global teardown when the hook completely unmounts (e.g. logging out)
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        console.log(`[Socket] Tearing down connection...`);
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, []);
 
   // Method to send a message
   const sendMessage = useCallback((content: string, author: string = 'User') => {
-    if (!socketRef.current || !isConnected) {
-      console.warn('Cannot send message, socket is not connected');
+    if (!socketRef.current || !isConnected || !channelId) {
+      console.warn('Cannot send message, socket is not connected or no channel active');
       return;
     }
     
     // Optimistic UI update could go here
     socketRef.current.emit('chat:send', {
-      room: roomId,
+      channelId,
       content,
       author
     });
-  }, [roomId, isConnected]);
+  }, [channelId, isConnected]);
 
   const sendDirectMessage = useCallback((conversationId: string, content: string, author: string = 'User') => {
     if (!socketRef.current || !isConnected) return;

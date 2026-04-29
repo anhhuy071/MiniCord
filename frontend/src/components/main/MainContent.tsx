@@ -4,11 +4,12 @@ import { useAuth } from "../../context/AuthContext";
 
 type MainContentProps = {
   channelName: string;
+  channelId: string;
 };
 
-export default function MainContent({ channelName }: MainContentProps) {
+export default function MainContent({ channelName, channelId }: MainContentProps) {
   const { token, user } = useAuth();
-  const { messages, isConnected, sendMessage, error } = useSocket(channelName, token);
+  const { messages, isConnected, sendMessage, error } = useSocket(channelId, token);
   const [inputValue, setInputValue] = useState("");
 
   const handleSend = (e: React.FormEvent) => {

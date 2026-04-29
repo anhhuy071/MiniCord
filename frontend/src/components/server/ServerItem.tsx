@@ -1,11 +1,13 @@
 type ServerItemProps = {
   label: string;
+  imageUrl?: string | null;
   active?: boolean;
   onSelect?: () => void;
 };
 
 export default function ServerItem({
   label,
+  imageUrl,
   active = false,
   onSelect,
 }: ServerItemProps) {
@@ -16,6 +18,7 @@ export default function ServerItem({
       tabIndex={0}
       onClick={onSelect}
       aria-pressed={active}
+      style={imageUrl ? { backgroundImage: `url(${imageUrl})`, backgroundSize: 'cover' } : {}}
       onKeyDown={(e) => {
         if (!onSelect) return;
         if (e.key === "Enter" || e.key === " ") {
@@ -23,7 +26,7 @@ export default function ServerItem({
         }
       }}
     >
-      <span>{label}</span>
+      {!imageUrl && <span>{label}</span>}
     </div>
   );
 }

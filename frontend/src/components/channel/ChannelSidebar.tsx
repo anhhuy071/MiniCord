@@ -1,30 +1,31 @@
 import ChannelItem from "./ChannelItem";
-
-const channelGroups = [
-
-  { name: "welcome", iconClass: "fa-regular fa-hand" },
-  { name: "general", iconClass: "fa-regular fa-comments" },
-  { name: "build-ideas", iconClass: "fa-solid fa-brain" },
-  { name: "bot-commands", iconClass: "fa-solid fa-robot" },
-  { name: "memes", iconClass: "fa-regular fa-face-laugh" },
-];
-
-const voiceChannels = ["Lounge", "Garden", "Raid Room"];
+import type { Server, Channel } from "../../types/types";
+import { useAuth } from "../../context/AuthContext";
 
 type ChannelSidebarProps = {
-  activeChannel: string;
-  onSelectChannel: (channelName: string) => void;
+  server: Server | null;
+  activeChannelId?: string;
+  onSelectChannel: (channel: Channel) => void;
+  onOpenChannelModal: () => void;
 };
 
 export default function ChannelSidebar({
-  activeChannel,
+  server,
+  activeChannelId,
   onSelectChannel,
+  onOpenChannelModal,
 }: ChannelSidebarProps) {
+
+  const { user } = useAuth();
+
+  const textChannels = server?.channels.filter(c => c.type === "TEXT") || [];
+  const voiceChannels = server?.channels.filter(c => c.type === "VOICE") || [];
+
   return (
     <aside className="channel-sidebar d-flex flex-column p-3">
       <header className="channel-top-bar">
         <div>
-          <p className="channel-server-name">MiniCord HQ</p>
+          <p className="channel-server-name">{server ? server.name : "Loading..."}</p>
           <p className="channel-server-topic">A cozy corner for builders and friends.</p>
         </div>
         <button className="icon-button" aria-label="Quick actions">
@@ -36,65 +37,66 @@ export default function ChannelSidebar({
         <section className="channel-section">
           <div className="section-heading">
             <span>Text Channels</span>
-            <button className="icon-button" aria-label="Add text channel">
+            <button className="icon-button" aria-label="Add text channel" onClick={onOpenChannelModal}>
               <i className="fa-solid fa-plus" aria-hidden="true" />
             </button>
           </div>
           <div className="channel-list">
-            {channelGroups.map((channel) => (
+            {textChannels.map((channel) => (
               <ChannelItem
-                key={channel.name}
+                key={channel.id}
                 name={channel.name}
-                iconClass={channel.iconClass}
-                active={channel.name === activeChannel}
-                onSelect={() => onSelectChannel(channel.name)}
+                iconClass="fa-solid fa-hashtag"
+                active={channel.id === activeChannelId}
+                onSelect={() => onSelectChannel(channel)}
               />
             ))}
+            {textChannels.length === 0 && <p style={{ fontSize: '12px', color: '#6d6d6f', margin: '4px 8px' }}>No text channels</p>}
           </div>
         </section>
 
         <section className="channel-section">
           <div className="section-heading">
             <span>Voice Channels</span>
-            <button className="icon-button" aria-label="Add voice channel">
+            <button className="icon-button" aria-label="Add voice channel" onClick={onOpenChannelModal}>
               <i className="fa-solid fa-plus" aria-hidden="true" />
             </button>
           </div>
           <div className="channel-list">
             {voiceChannels.map((channel) => (
               <ChannelItem
-                key={channel}
-                name={channel}
+                key={channel.id}
+                name={channel.name}
                 iconClass="fa-solid fa-volume-high"
-                active={channel === activeChannel}
+                active={channel.id === activeChannelId}
                 onSelect={() => onSelectChannel(channel)}
               />
             ))}
+            {voiceChannels.length === 0 && <p style={{ fontSize: '12px', color: '#6d6d6f', margin: '4px 8px' }}>No voice channels</p>}
           </div>
-          <div className="voice-panel">
-            <div className="voice-status">
-              <span className="voice-indicator" />
-              <div>
-                <p className="voice-title">Voice Connected</p>
-                <p className="voice-subtitle">Streaming in MiniDeck</p>
-              </div>
-            </div>
-            <button className="voice-action">Join Call</button>
+          <div className="voice-panel" style={{ display: 'none' }}>
+             {/* Hidden until voice implementation is complete */}
           </div>
         </section>
       </div>
 
       <div className="channel-sidebar-footer">
         <div className="sidebar-profile">
-          <div className="sidebar-avatar">AC</div>
+          <div className="sidebar-avatar">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.username} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+            ) : (
+              user?.username?.substring(0, 2).toUpperCase() || '??'
+            )}
+          </div>
           <div>
-            <p className="profile-name">Avery Code</p>
-            <p className="profile-status">#0034</p>
+            <p className="profile-name">{user?.username || 'Guest'}</p>
+            <p className="profile-status">Online</p>
           </div>
         </div>
         <div className="sidebar-actions">
           <button className="icon-button" aria-label="Mute">
-            <i className="fa-solid fa-volume-xmark" aria-hidden="true" />
+            <i className="fa-solid fa-microphone" aria-hidden="true" />
           </button>
           <button className="icon-button" aria-label="Headphones">
             <i className="fa-solid fa-headphones" aria-hidden="true" />

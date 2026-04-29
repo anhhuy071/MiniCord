@@ -1,33 +1,36 @@
-
 import ServerItem from "./ServerItem";
-
-const servers = ["DR", "PX", "GL", "LY", "NF"];
+import type { Server } from "../../types/types";
 
 type ServerSidebarProps = {
-  activeServer: string;
-  onSelectServer: (label: string) => void;
+  servers: Server[];
+  activeServerId?: string;
+  onSelectServer: (server: Server) => void;
+  onOpenServerModal: () => void;
 };
 
 export default function ServerSidebar({
-  activeServer,
+  servers,
+  activeServerId,
   onSelectServer,
+  onOpenServerModal,
 }: ServerSidebarProps) {
   return (
     <aside className="server-sidebar d-flex flex-column align-items-center py-3">
       <div className="server-home">MC</div>
       <div className="server-divider" />
       <div className="server-list d-flex flex-column gap-2">
-        {servers.map((label) => (
+        {servers.map((server) => (
           <ServerItem
-            key={label}
-            label={label}
-            active={label === activeServer}
-            onSelect={() => onSelectServer(label)}
+            key={server.id}
+            label={server.name.substring(0, 2).toUpperCase()}
+            imageUrl={server.imageUrl}
+            active={server.id === activeServerId}
+            onSelect={() => onSelectServer(server)}
           />
         ))}
       </div>
       <div className="server-divider" />
-      <button className="server-create" aria-label="Create server">
+      <button className="server-create" aria-label="Create server" onClick={onOpenServerModal}>
         <i className="fa-solid fa-plus" aria-hidden="true" />
       </button>
     </aside>

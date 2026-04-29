@@ -42,10 +42,8 @@ const io = new SocketIOServer(httpServer, {
   },
 });
 
-// Trạng thái Online Tracker (Map[userId, Set<socketId>])
 export const onlineUsers = new Map<string, Set<string>>();
  
-// Đăng ký middleware chuyên biệt cho socket
 io.use(requireSocketAuth as any);
 
 io.on("connection", (rawSocket) => {
@@ -59,25 +57,22 @@ io.on("connection", (rawSocket) => {
   const userSockets = onlineUsers.get(userId)!;
   
   if (userSockets.size === 0) {
-    // Nếu là connection đầu tiên, báo cho mọi người biết
     socket.broadcast.emit("user:online", { userId });
   }
   userSockets.add(socket.id);
   
   console.log(`[Socket] User ${userId} connected (Socket ID: ${socket.id}). Total Online Users: ${onlineUsers.size}`);
   
-  // 2. Gửi danh sách user đang online cho client mới
   socket.emit("online:list", Array.from(onlineUsers.keys()));
 
-  socket.on("room:join", async ({ room }) => {
-    if (typeof room !== "string" || room.trim().length === 0) return;
+  socket.on("room:join", async ({ channelId }) => {
+    if (typeof channelId !== "string" || channelId.trim().length === 0) return;
 
-    socket.join(room);
+    socket.join(channelId);
 
     try {
-      // In a real app, users explicitly create Servers and Channels via REST API first.
-      const channel = await prisma.channel.findFirst({
-        where: { name: room }
+      const channel = await prisma.channel.findUnique({
+        where: { id: channelId }
       });
 
       if (!channel) {
@@ -96,30 +91,27 @@ io.on("connection", (rawSocket) => {
       // Format for the frontend UI logic
       const history = messages.map(m => ({
         id: m.id,
+        channelId: channel.id,
         room: channel.name,
         author: m.author.username,
         content: m.content,
         createdAt: m.createdAt.toISOString()
       }));
 
-      socket.emit("room:history", { room, messages: history });
+      socket.emit("room:history", { channelId: channel.id, room: channel.name, messages: history });
     } catch (err) {
       console.error("Error loading history:", err);
     }
   });
 
-  socket.on("chat:send", async ({ room, content }) => {
-    if (typeof room !== "string" || room.trim().length === 0) return;
+  socket.on("chat:send", async ({ channelId, content }) => {
+    if (typeof channelId !== "string" || channelId.trim().length === 0) return;
     if (typeof content !== "string" || content.trim().length === 0) return;
 
     try {
-       // Look up the channel they are sending the message to
-       const channel = await prisma.channel.findFirst({ where: { name: room } });
+       const channel = await prisma.channel.findUnique({ where: { id: channelId } });
        if (!channel) return;
 
-       // 🏗️ Save directly to the Database! No more fragile file I/O blocking the event loop!
-       // Notice we don't trust the `author` string sent from frontend anymore.
-       // We use the `userId` proven mathematically by their JWT Token. This prevents impersonation.
        const newMessage = await prisma.message.create({
          data: {
            content: content.trim(),
@@ -131,14 +123,15 @@ io.on("connection", (rawSocket) => {
 
        const formattedMessage = {
          id: newMessage.id,
+         channelId: channel.id,
          room: channel.name,
-         author: newMessage.author.username, // Safely resolving the username locally via DB Join
+         author: newMessage.author.username,
          content: newMessage.content,
          createdAt: newMessage.createdAt.toISOString()
        };
 
-       // Broadcast to everyone in the room
-       io.to(room).emit("chat:message", { room, message: formattedMessage });
+       // Broadcast to everyone in the channel's room
+       io.to(channelId).emit("chat:message", { channelId: channel.id, message: formattedMessage });
     } catch (err) {
       console.error("Error saving message:", err);
     }
