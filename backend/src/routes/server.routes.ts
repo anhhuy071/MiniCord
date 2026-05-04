@@ -66,6 +66,15 @@ router.post('/', RequireAuth, async (req: AuthRequest, res: Response): Promise<a
         }
       });
 
+      // Tạo một voice channel mặc định (Lobby)
+      await tx.channel.create({
+        data: {
+          name: 'Lobby',
+          type: 'VOICE',
+          serverId: server.id
+        }
+      });
+
       return server;
     });
 

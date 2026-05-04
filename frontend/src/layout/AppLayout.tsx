@@ -6,13 +6,20 @@ import MembersSidebar from "../components/member/MembersSidebar";
 import Topbar from "../components/common/Topbar";
 import ServerModal from "../components/server/ServerModal";
 import ChannelModal from "../components/channel/ChannelModal";
+import VoicePanel from "../components/channel/VoicePanel";
 import type { Server, Channel } from "../types/types";
 import { fetchApi } from "../services/api";
+import { useSocket } from "../hooks/useSocket";
+import { useAuth } from "../context/AuthContext";
 
 export default function AppLayout() {
+  const { token } = useAuth();
   const [servers, setServers] = useState<Server[]>([]);
   const [activeServer, setActiveServer] = useState<Server | null>(null);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState<Channel | null>(null);
+
+  const { socket, messages, voicePresence, isConnected, sendMessage, error } = useSocket(activeChannel?.id, token);
 
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
@@ -70,6 +77,14 @@ export default function AppLayout() {
     }
   };
 
+  const handleSelectChannel = (channel: Channel) => {
+    if (channel.type === "VOICE") {
+      setActiveVoiceChannel(channel);
+    } else {
+      setActiveChannel(channel);
+    }
+  };
+
   return (
     <div className="app-shell">
       <Topbar activeServer={activeServer?.name} />
@@ -80,13 +95,33 @@ export default function AppLayout() {
           onSelectServer={handleSelectServer} 
           onOpenServerModal={() => setIsServerModalOpen(true)}
         />
-        <ChannelSidebar 
-          server={activeServer} 
-          activeChannelId={activeChannel?.id} 
-          onSelectChannel={setActiveChannel} 
-          onOpenChannelModal={() => setIsChannelModalOpen(true)}
-        />
-        {activeChannel && <MainContent channelName={activeChannel.name} channelId={activeChannel.id} />}
+        <div className="d-flex flex-column" style={{ width: '260px', background: 'var(--bg-surface)', borderRight: '1px solid var(--border)' }}>
+          <ChannelSidebar 
+            server={activeServer} 
+            activeChannelId={activeChannel?.id} 
+            voicePresence={voicePresence}
+            onSelectChannel={handleSelectChannel} 
+            onOpenChannelModal={() => setIsChannelModalOpen(true)}
+          />
+          {activeVoiceChannel && (
+            <VoicePanel 
+              channelId={activeVoiceChannel.id} 
+              channelName={activeVoiceChannel.name} 
+              socket={socket} 
+              onDisconnect={() => setActiveVoiceChannel(null)} 
+            />
+          )}
+        </div>
+        {activeChannel && (
+          <MainContent 
+            channelName={activeChannel.name} 
+            channelId={activeChannel.id} 
+            messages={messages}
+            isConnected={isConnected}
+            sendMessage={sendMessage}
+            error={error}
+          />
+        )}
         <MembersSidebar />
       </div>
 

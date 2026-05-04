@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 type ChannelSidebarProps = {
   server: Server | null;
   activeChannelId?: string;
+  voicePresence?: Record<string, any[]>;
   onSelectChannel: (channel: Channel) => void;
   onOpenChannelModal: () => void;
 };
@@ -12,6 +13,7 @@ type ChannelSidebarProps = {
 export default function ChannelSidebar({
   server,
   activeChannelId,
+  voicePresence,
   onSelectChannel,
   onOpenChannelModal,
 }: ChannelSidebarProps) {
@@ -64,13 +66,26 @@ export default function ChannelSidebar({
           </div>
           <div className="channel-list">
             {voiceChannels.map((channel) => (
-              <ChannelItem
-                key={channel.id}
-                name={channel.name}
-                iconClass="fa-solid fa-volume-high"
-                active={channel.id === activeChannelId}
-                onSelect={() => onSelectChannel(channel)}
-              />
+              <div key={channel.id}>
+                <ChannelItem
+                  name={channel.name}
+                  iconClass="fa-solid fa-volume-high"
+                  active={channel.id === activeChannelId}
+                  onSelect={() => onSelectChannel(channel)}
+                />
+                {voicePresence?.[channel.id]?.map((u: any) => (
+                  <div key={u.id} className="voice-user-presence d-flex align-items-center" style={{ paddingLeft: '32px', marginTop: '2px', marginBottom: '4px' }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', marginRight: '8px', background: 'var(--bg-modifier-active)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {u.avatarUrl ? (
+                         <img src={u.avatarUrl} alt={u.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                         <span style={{ fontSize: '10px', color: 'white' }}>{u.username.substring(0,2).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{u.username}</span>
+                  </div>
+                ))}
+              </div>
             ))}
             {voiceChannels.length === 0 && <p style={{ fontSize: '12px', color: '#6d6d6f', margin: '4px 8px' }}>No voice channels</p>}
           </div>

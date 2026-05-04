@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../context/AuthContext";
 
 type MainContentProps = {
   channelName: string;
   channelId: string;
+  messages: any[];
+  isConnected: boolean;
+  sendMessage: (content: string, author?: string) => void;
+  error: string | null;
 };
 
-export default function MainContent({ channelName, channelId }: MainContentProps) {
-  const { token, user } = useAuth();
-  const { messages, isConnected, sendMessage, error } = useSocket(channelId, token);
+export default function MainContent({ channelName, channelId, messages, isConnected, sendMessage, error }: MainContentProps) {
+  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
 
   const handleSend = (e: React.FormEvent) => {
@@ -60,7 +62,7 @@ export default function MainContent({ channelName, channelId }: MainContentProps
       </section>
 
       <div className="chat-input border-top-0 pt-3">
-        <form onSubmit={handleSend} style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+        <form onSubmit={handleSend} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: "8px" }}>
           <div className="input-prefix" aria-hidden="true">
             <i className="fa-solid fa-plus" />
           </div>

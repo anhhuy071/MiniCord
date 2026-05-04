@@ -43,6 +43,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 export const onlineUsers = new Map<string, Set<string>>();
+export const voicePresences = new Map<string, any[]>();
  
 io.use(requireSocketAuth as any);
 
@@ -135,6 +136,79 @@ io.on("connection", (rawSocket) => {
     } catch (err) {
       console.error("Error saving message:", err);
     }
+  });
+
+  // --- WebRTC Voice Handlers ---
+  socket.on("voice:join", async ({ channelId }) => {
+    if (typeof channelId !== "string" || channelId.trim().length === 0) return;
+    const voiceRoom = `voice_${channelId}`;
+    socket.join(voiceRoom);
+    
+    socket.to(voiceRoom).emit("voice:user-joined", { 
+      socketId: socket.id 
+    });
+
+    const clientsInRoom = io.sockets.adapter.rooms.get(voiceRoom);
+    const existingUsers = clientsInRoom ? Array.from(clientsInRoom).filter(id => id !== socket.id) : [];
+    socket.emit("voice:room-users", existingUsers);
+    
+    console.log(`[Socket] User ${userId} joined voice room: ${voiceRoom}. Peers: ${existingUsers.length}`);
+
+    // --- Presence Logic ---
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true, avatarUrl: true } });
+      if (user) {
+        let presenceList = voicePresences.get(channelId) || [];
+        presenceList = presenceList.filter(p => p.socketId !== socket.id);
+        presenceList.push({ ...user, socketId: socket.id });
+        voicePresences.set(channelId, presenceList);
+        io.emit("voice:presence-update", { channelId, users: presenceList });
+      }
+    } catch (err) {
+      console.error("Presence error", err);
+    }
+  });
+
+  socket.on("voice:signal", ({ targetSocketId, signal }) => {
+    io.to(targetSocketId).emit("voice:signal", { 
+      fromSocketId: socket.id, 
+      signal 
+    });
+  });
+
+  socket.on("voice:leave", ({ channelId }) => {
+    if (typeof channelId !== "string") return;
+    const voiceRoom = `voice_${channelId}`;
+    socket.leave(voiceRoom);
+    socket.to(voiceRoom).emit("voice:user-left", { socketId: socket.id });
+
+    let presenceList = voicePresences.get(channelId) || [];
+    presenceList = presenceList.filter(p => p.socketId !== socket.id);
+    if (presenceList.length === 0) {
+      voicePresences.delete(channelId);
+    } else {
+      voicePresences.set(channelId, presenceList);
+    }
+    io.emit("voice:presence-update", { channelId, users: presenceList });
+  });
+
+  socket.on("disconnecting", () => {
+    socket.rooms.forEach(room => {
+      if (room.startsWith("voice_")) {
+        socket.to(room).emit("voice:user-left", { socketId: socket.id });
+        
+        // --- Presence Logic ---
+        const channelId = room.replace("voice_", "");
+        let presenceList = voicePresences.get(channelId) || [];
+        presenceList = presenceList.filter(p => p.socketId !== socket.id);
+        if (presenceList.length === 0) {
+          voicePresences.delete(channelId);
+        } else {
+          voicePresences.set(channelId, presenceList);
+        }
+        io.emit("voice:presence-update", { channelId, users: presenceList });
+      }
+    });
   });
 
   // --- DM Socket Handlers ---

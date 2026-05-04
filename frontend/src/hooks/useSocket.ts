@@ -16,6 +16,7 @@ export function useSocket(channelId: string | undefined, token: string | null) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [voicePresence, setVoicePresence] = useState<Record<string, any[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   // Connection Lifecycle Management
@@ -71,6 +72,10 @@ export function useSocket(channelId: string | undefined, token: string | null) {
 
       newSocket.on('dm:notification', (data: { conversationId: string; message: Message }) => {
         console.log(`[Notification] New DM from ${data.message.author}: ${data.message.content}`);
+      });
+
+      newSocket.on('voice:presence-update', ({ channelId, users }) => {
+        setVoicePresence(prev => ({ ...prev, [channelId]: users }));
       });
     }
 
@@ -140,8 +145,10 @@ export function useSocket(channelId: string | undefined, token: string | null) {
   }, [isConnected]);
 
   return {
+    socket: socketRef.current,
     isConnected,
     messages,
+    voicePresence,
     error,
     sendMessage,
     sendDirectMessage
