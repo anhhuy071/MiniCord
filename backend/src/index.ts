@@ -6,6 +6,8 @@ import serverRoutes from './routes/server.routes.js';
 import userRoutes from './routes/user.routes.js';
 import dmRoutes from './routes/dm.routes.js';
 import { requireSocketAuth, AuthSocket } from './middleware/socket.middleware.js';
+import { assertChannelMember, assertConversationParticipant } from './utils/socket-auth.util.js';
+import { chronologicalFromLatest } from './utils/message-query.util.js';
 
 import { Server as SocketIOServer } from "socket.io";
 import prisma from './lib/prisma.js';
@@ -69,27 +71,26 @@ io.on("connection", (rawSocket) => {
   socket.on("room:join", async ({ channelId }) => {
     if (typeof channelId !== "string" || channelId.trim().length === 0) return;
 
-    socket.join(channelId);
-
     try {
-      const channel = await prisma.channel.findUnique({
-        where: { id: channelId }
-      });
-
-      if (!channel) {
-        socket.emit("room:error", { message: "Channel not found" });
+      const auth = await assertChannelMember(userId, channelId);
+      if (!auth.ok) {
+        const message = auth.reason === 'not_found' ? 'Channel not found' : 'Access denied';
+        socket.emit("room:error", { message });
         return;
       }
 
-      // Fetch the last 50 messages from the Real Database using Prisma!
-      const messages = await prisma.message.findMany({
+      const { channel } = auth;
+      socket.join(channelId);
+
+      const latestMessages = await prisma.message.findMany({
         where: { channelId: channel.id },
         include: { author: { select: { username: true, id: true } } },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         take: 50
       });
 
-      // Format for the frontend UI logic
+      const messages = chronologicalFromLatest(latestMessages);
+
       const history = messages.map(m => ({
         id: m.id,
         channelId: channel.id,
@@ -110,8 +111,13 @@ io.on("connection", (rawSocket) => {
     if (typeof content !== "string" || content.trim().length === 0) return;
 
     try {
-       const channel = await prisma.channel.findUnique({ where: { id: channelId } });
-       if (!channel) return;
+       const auth = await assertChannelMember(userId, channelId);
+       if (!auth.ok) {
+         socket.emit("chat:error", { channelId, message: 'Access denied' });
+         return;
+       }
+
+       const { channel } = auth;
 
        const newMessage = await prisma.message.create({
          data: {
@@ -131,7 +137,6 @@ io.on("connection", (rawSocket) => {
          createdAt: newMessage.createdAt.toISOString()
        };
 
-       // Broadcast to everyone in the channel's room
        io.to(channelId).emit("chat:message", { channelId: channel.id, message: formattedMessage });
     } catch (err) {
       console.error("Error saving message:", err);
@@ -141,8 +146,13 @@ io.on("connection", (rawSocket) => {
   // --- WebRTC Voice Handlers ---
   socket.on("voice:join", async ({ channelId }) => {
     if (typeof channelId !== "string" || channelId.trim().length === 0) return;
+
+    const auth = await assertChannelMember(userId, channelId);
+    if (!auth.ok) return;
+
     const voiceRoom = `voice_${channelId}`;
     socket.join(voiceRoom);
+    socket.data.voiceChannelId = channelId;
     
     socket.to(voiceRoom).emit("voice:user-joined", { 
       socketId: socket.id 
@@ -154,7 +164,6 @@ io.on("connection", (rawSocket) => {
     
     console.log(`[Socket] User ${userId} joined voice room: ${voiceRoom}. Peers: ${existingUsers.length}`);
 
-    // --- Presence Logic ---
     try {
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true, avatarUrl: true } });
       if (user) {
@@ -170,6 +179,17 @@ io.on("connection", (rawSocket) => {
   });
 
   socket.on("voice:signal", ({ targetSocketId, signal }) => {
+    if (typeof targetSocketId !== "string" || targetSocketId.trim().length === 0) return;
+    if (targetSocketId === socket.id) return;
+
+    const senderVoiceChannelId = socket.data.voiceChannelId;
+    if (!senderVoiceChannelId) return;
+
+    const targetSocket = io.sockets.sockets.get(targetSocketId) as AuthSocket | undefined;
+    if (!targetSocket) return;
+
+    if (targetSocket.data.voiceChannelId !== senderVoiceChannelId) return;
+
     io.to(targetSocketId).emit("voice:signal", { 
       fromSocketId: socket.id, 
       signal 
@@ -180,6 +200,9 @@ io.on("connection", (rawSocket) => {
     if (typeof channelId !== "string") return;
     const voiceRoom = `voice_${channelId}`;
     socket.leave(voiceRoom);
+    if (socket.data.voiceChannelId === channelId) {
+      delete socket.data.voiceChannelId;
+    }
     socket.to(voiceRoom).emit("voice:user-left", { socketId: socket.id });
 
     let presenceList = voicePresences.get(channelId) || [];
@@ -193,6 +216,8 @@ io.on("connection", (rawSocket) => {
   });
 
   socket.on("disconnecting", () => {
+    delete socket.data.voiceChannelId;
+
     socket.rooms.forEach(room => {
       if (room.startsWith("voice_")) {
         socket.to(room).emit("voice:user-left", { socketId: socket.id });
@@ -212,8 +237,15 @@ io.on("connection", (rawSocket) => {
   });
 
   // --- DM Socket Handlers ---
-  socket.on("dm:join", ({ conversationId }) => {
+  socket.on("dm:join", async ({ conversationId }) => {
     if (typeof conversationId !== "string" || conversationId.trim().length === 0) return;
+
+    const auth = await assertConversationParticipant(userId, conversationId);
+    if (!auth.ok) {
+      console.warn(`[Socket] User ${userId} denied DM join for ${conversationId}: ${auth.reason}`);
+      return;
+    }
+
     socket.join(conversationId);
     console.log(`[Socket] User ${userId} joined DM room: ${conversationId}`);
   });

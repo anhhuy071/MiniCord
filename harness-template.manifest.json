@@ -1,0 +1,24 @@
+{
+  "name": "ecc-harness-template",
+  "version": "2.0.0",
+  "copy": [
+    ".cursor/",
+    "scripts/",
+    "schemas/",
+    "tests/",
+    "package.json",
+    "HARNESS.md",
+    ".gitignore"
+  ],
+  "exclude": [
+    ".cursor/ecc-install-state.json",
+    ".git/",
+    "node_modules/",
+    ".orchestration/",
+    "gan-harness/"
+  ],
+  "verify": [
+    "npm run observability:ready",
+    "npm run test"
+  ]
+}

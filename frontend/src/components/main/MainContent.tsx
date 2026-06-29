@@ -10,7 +10,7 @@ type MainContentProps = {
   error: string | null;
 };
 
-export default function MainContent({ channelName, channelId, messages, isConnected, sendMessage, error }: MainContentProps) {
+export default function MainContent({ channelName, channelId: _channelId, messages, isConnected, sendMessage, error }: MainContentProps) {
   const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
 

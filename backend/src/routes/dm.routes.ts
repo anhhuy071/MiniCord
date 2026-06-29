@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import { RequireAuth, AuthRequest } from '../middleware/auth.middleware.js';
 import prisma from '../lib/prisma.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { chronologicalFromLatest } from '../utils/message-query.util.js';
 
 const router = express.Router();
 
@@ -93,14 +94,16 @@ router.get('/:conversationId/messages', RequireAuth, async (req: AuthRequest, re
       return sendError(res, 'Access denied', 403);
     }
 
-    const messages = await prisma.directMessage.findMany({
+    const latestMessages = await prisma.directMessage.findMany({
       where: { conversationId },
       include: {
         author: { select: { id: true, username: true, avatarUrl: true } }
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: 50
     });
+
+    const messages = chronologicalFromLatest(latestMessages);
 
     sendSuccess(res, messages, 'Messages retrieved successfully', 200);
   } catch (error) {

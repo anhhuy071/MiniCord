@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0-jammy
+    container_name: minicord-mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: |
+        mongosh --port 27017 --quiet --eval "
+        try {
+          var status = rs.status();
+          if (status.ok) {
+            quit(0);
+          }
+        } catch (e) {
+          // If rs.status() throws, we try to initiate the replica set
+          try {
+            var res = rs.initiate({
+              _id: 'rs0',
+              members: [{ _id: 0, host: 'mongodb:27017' }]
+            });
+            if (res.ok) {
+              quit(0);
+            }
+          } catch (initErr) {
+            // Initiate failed, try again next time
+          }
+        }
+        quit(1);
+        "
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minicord-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=mongodb://mongodb:27017/minicord?replicaSet=rs0
+      - PORT=3000
+      - FRONTEND_ORIGIN=http://localhost
+      - JWT_SECRET=super_secret_minicord_jwt_token_123
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: minicord-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

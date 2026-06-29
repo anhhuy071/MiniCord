@@ -1,6 +1,0 @@
-$kind: http-request
-name: Get Current User (Me)
-order: 3000
-method: GET
-url: '{{baseUrl}}/api/auth/me'
-description: Returns the currently authenticated user's profile. Requires a valid JWT token.

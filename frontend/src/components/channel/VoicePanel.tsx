@@ -10,7 +10,7 @@ type VoicePanelProps = {
 };
 
 // Component to render a single remote audio stream
-function RemoteAudio({ stream, socketId }: { stream: MediaStream; socketId: string }) {
+function RemoteAudio({ stream, socketId: _socketId }: { stream: MediaStream; socketId: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {

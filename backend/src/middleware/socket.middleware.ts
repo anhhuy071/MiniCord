@@ -5,8 +5,9 @@ export interface AuthSocket extends Socket {
   data: {
     user: {
       userId: string;
-    }
-  }
+    };
+    voiceChannelId?: string;
+  };
 }
 
 export const requireSocketAuth = (socket: Socket, next: (err?: Error) => void) => {
