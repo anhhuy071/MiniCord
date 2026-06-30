@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "session": {
+      "type": "object",
+      "required": ["id", "adapterId", "harness", "state", "snapshot"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "adapterId": { "type": "string", "minLength": 1 },
+        "harness": { "type": "string", "minLength": 1 },
+        "state": { "type": "string", "minLength": 1 },
+        "repoRoot": { "type": ["string", "null"] },
+        "startedAt": { "type": ["string", "null"] },
+        "endedAt": { "type": ["string", "null"] },
+        "snapshot": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "workItem": {
+      "type": "object",
+      "required": ["id", "source", "title", "status"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceId": { "type": ["string", "null"] },
+        "title": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "minLength": 1 },
+        "priority": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"] },
+        "owner": { "type": ["string", "null"] },
+        "repoRoot": { "type": ["string", "null"] },
+        "sessionId": { "type": ["string", "null"] },
+        "metadata": { "type": ["object", "null"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

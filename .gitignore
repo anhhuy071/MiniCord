@@ -1,54 +1,81 @@
+# =============================================================================
+# MiniCord — React + Node/Express + Prisma/MongoDB
+# =============================================================================
 
-# Windows
+# --- OS ---
+.DS_Store
 Thumbs.db
 desktop.ini
 ehthumbs.db
 
-# === Node ===
+# --- Dependencies ---
 node_modules/
-**/node_modules/
 
-# === Logs ===
-logs/
-*.log
-npm-debug.log*
-yarn-error.log
-pnpm-debug.log
-
-# === Build outputs ===
+# --- Build outputs ---
 dist/
+dist-ssr/
 build/
-.next/
-.parcel-cache/
 out/
+backend/dist/
 frontend/dist/
-frontend/.vite/
+.vite/
+*.tsbuildinfo
 
-# === Environment ===
+# --- Environment & secrets ---
 .env
-.env.*.local
-.env.local
-frontend/.env
-frontend/.env.*.local
-frontend/.env.local
+.env.*
+!.env.example
+*.local
 
-# === Testing / coverage ===
+# --- Database ---
+*.db
+*.db-shm
+*.db-wal
+backend/src/generated/prisma/
+
+# --- Testing & coverage ---
 coverage/
 .nyc_output/
 jest.cache
 
-# === IDEs / editors ===
-.vscode/
-.idea/
-
-# === Tools / caches ===
+# --- Logs & caches ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 .eslintcache
-.serverless/
 .cache/
-npm-packages-offline-cache/
-node-repl.history
-frontend/.cache/
+.serverless/
+.npm/
 
-# === Misc ===
+# --- IDE (keep shared team settings) ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Package artifacts ---
 *.tgz
 
+# --- Local agent / plugin trees (do not commit) ---
+.agents/
+.cursor/agents/
+.cursor/.agents/
+
+# --- Harness runtime outputs (local only) ---
+.reports/
+.orchestration/
+ecc-install-state.json
+.cursor/ecc-install-state.json
+
+# --- Optional local learning artifacts ---
+.cursor/skills/learned/
