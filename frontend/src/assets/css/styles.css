@@ -829,6 +829,28 @@ button {
   align-items: flex-start;
 }
 
+.chat-message:hover .message-delete-button {
+  opacity: 1;
+}
+
+.message-heading-end {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.message-delete-button {
+  opacity: 0;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.message-delete-button:hover {
+  color: #f04747;
+}
+
 .message-avatar {
   width: 36px;
   height: 36px;

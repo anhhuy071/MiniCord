@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ServerSidebar from "../components/server/ServerSidebar";
 import ChannelSidebar from "../components/channel/ChannelSidebar";
 import MainContent from "../components/main/MainContent";
@@ -7,7 +7,7 @@ import Topbar from "../components/common/Topbar";
 import ServerModal from "../components/server/ServerModal";
 import ChannelModal from "../components/channel/ChannelModal";
 import VoicePanel from "../components/channel/VoicePanel";
-import type { Server, Channel } from "../types/types";
+import type { Server, Channel, ServerMember } from "../types/types";
 import { fetchApi } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 import { useAuth } from "../context/AuthContext";
@@ -19,7 +19,10 @@ export default function AppLayout() {
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState<Channel | null>(null);
 
-  const { socket, messages, voicePresence, isConnected, sendMessage, error } = useSocket(activeChannel?.id, token);
+  const { socket, messages, voicePresence, onlineUserIds, isConnected, sendMessage, deleteMessage, error } = useSocket(activeChannel?.id, token);
+
+  const [members, setMembers] = useState<ServerMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
@@ -50,6 +53,34 @@ export default function AppLayout() {
     loadServers();
   }, [loadServers]);
 
+  const membersRequestIdRef = useRef(0);
+
+  const loadMembers = useCallback(async (serverId: string) => {
+    const requestId = ++membersRequestIdRef.current;
+    try {
+      setMembersLoading(true);
+      const data = await fetchApi<ServerMember[]>(`/servers/${serverId}/members`);
+      if (requestId !== membersRequestIdRef.current) return;
+      setMembers(data);
+    } catch (err) {
+      if (requestId !== membersRequestIdRef.current) return;
+      console.error("Failed to load members", err);
+      setMembers([]);
+    } finally {
+      if (requestId === membersRequestIdRef.current) {
+        setMembersLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeServer?.id) {
+      loadMembers(activeServer.id);
+    } else {
+      setMembers([]);
+    }
+  }, [activeServer?.id, loadMembers]);
+
   const handleSelectServer = (server: Server) => {
     setActiveServer(server);
     if (server.channels && server.channels.length > 0) {
@@ -60,7 +91,6 @@ export default function AppLayout() {
   };
 
   const handleServerSuccess = (server: Server) => {
-    // Refresh servers to get full data (including default channel), and auto-select the new one
     loadServers(server.id);
   };
 
@@ -119,10 +149,15 @@ export default function AppLayout() {
             messages={messages}
             isConnected={isConnected}
             sendMessage={sendMessage}
+            deleteMessage={deleteMessage}
             error={error}
           />
         )}
-        <MembersSidebar />
+        <MembersSidebar
+          members={members}
+          onlineUserIds={onlineUserIds}
+          isLoading={membersLoading}
+        />
       </div>
 
       <ServerModal 

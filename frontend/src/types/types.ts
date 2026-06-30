@@ -1,3 +1,22 @@
+export interface ServerMember {
+  id: string;
+  role: string;
+  userId: string;
+  serverId: string;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl?: string | null;
+  };
+}
+
+export interface PublicUser {
+  id: string;
+  username: string;
+  avatarUrl?: string | null;
+  createdAt?: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -22,10 +41,13 @@ export interface Server {
 
 export interface Message {
   id: string;
+  channelId: string;
   room: string;
   author: string;
+  authorId?: string;
   content: string;
   createdAt: string;
+  status?: 'pending' | 'sent' | 'failed';
 }
 
 export interface ApiResponse<T> {

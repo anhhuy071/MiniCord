@@ -2,6 +2,8 @@ import express, { Response } from 'express';
 import { RequireAuth, AuthRequest } from '../middleware/auth.middleware.js';
 import prisma from '../lib/prisma.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { assertServerMember } from '../utils/socket-auth.util.js';
+import { PUBLIC_USER_SELECT } from '../utils/user.util.js';
 
 const router = express.Router();
 
@@ -85,7 +87,36 @@ router.post('/', RequireAuth, async (req: AuthRequest, res: Response): Promise<a
   }
 });
 
-// 3. Tham gia vào 1 server đã có
+// 3. List members of a server (caller must be a member)
+router.get('/:serverId/members', RequireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const serverId = req.params.serverId as string;
+    const userId = (req.user as any).userId;
+
+    const auth = await assertServerMember(userId, serverId);
+    if (!auth.ok) {
+      return sendError(res, 'Access denied', 403);
+    }
+
+    const members = await prisma.serverMember.findMany({
+      where: { serverId },
+      include: {
+        user: { select: PUBLIC_USER_SELECT },
+      },
+      orderBy: [
+        { role: 'asc' },
+        { createdAt: 'asc' },
+      ],
+    });
+
+    sendSuccess(res, members, 'Members retrieved successfully', 200);
+  } catch (error) {
+    console.error(error);
+    sendError(res, 'Lỗi server khi lấy danh sách members', 500);
+  }
+});
+
+// 4. Tham gia vào 1 server đã có
 router.post('/:serverId/join', RequireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const serverId = req.params.serverId as string;
@@ -122,7 +153,7 @@ router.post('/:serverId/join', RequireAuth, async (req: AuthRequest, res: Respon
   }
 });
 
-// 4. Tạo Channel mới trong Server (chỉ dành cho Owner hoặc Admin)
+// 5. Tạo Channel mới trong Server (chỉ dành cho Owner hoặc Admin)
 router.post('/:serverId/channels', RequireAuth, async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const serverId = req.params.serverId as string;

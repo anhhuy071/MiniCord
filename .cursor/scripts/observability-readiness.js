@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ensureMetricsDir, metricsDir, isTmuxAvailable, resolveRepoRoot } = require('./lib/observability-lib');
+const { ensureHarnessStores } = require('./lib/harness-bootstrap');
 const { listOrchestrationSessions } = require('./lib/orchestration-paths');
 
 function usage() {
@@ -65,6 +66,24 @@ function checkHookProfile() {
     return { id: 'hook-profile', ok: true, message: 'ECC_HOOK_PROFILE=minimal (telemetry hooks still enabled)' };
   }
   return { id: 'hook-profile', ok: true, message: `ECC_HOOK_PROFILE=${profile}` };
+}
+
+function checkHarnessStores() {
+  return ensureHarnessStores()
+    .then(outcome => {
+      const created = [];
+      if (outcome.contextDatabase.created) created.push('ecc2.db');
+      if (outcome.stateDatabase.created) created.push('state.db');
+      const message = created.length > 0
+        ? `Harness stores bootstrapped: ${created.join(', ')}`
+        : `Harness stores present (${outcome.contextDatabase.dbPath})`;
+      return { id: 'harness-stores', ok: true, message };
+    })
+    .catch(error => ({
+      id: 'harness-stores',
+      ok: false,
+      message: error.message,
+    }));
 }
 
 function checkOrchestrationPaths(cwd) {
@@ -167,8 +186,11 @@ function runChecks(options = {}) {
     checks.push(checkMultiAgentPlaybook(repoRoot));
   }
 
-  const ok = checks.every(check => check.ok);
-  return { ok, checks, generatedAt: new Date().toISOString() };
+  return checkHarnessStores().then(storeCheck => {
+    checks.splice(5, 0, storeCheck);
+    const ok = checks.every(check => check.ok);
+    return { ok, checks, generatedAt: new Date().toISOString() };
+  });
 }
 
 function main() {
@@ -178,16 +200,20 @@ function main() {
     process.exit(0);
   }
 
-  const report = runChecks();
-  if (json) {
-    console.log(JSON.stringify(report, null, 2));
-  } else {
-    console.log('Observability readiness');
-    for (const check of report.checks) {
-      console.log(`${check.ok ? 'OK' : 'FAIL'}  ${check.id}: ${check.message}`);
+  runChecks().then(report => {
+    if (json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log('Observability readiness');
+      for (const check of report.checks) {
+        console.log(`${check.ok ? 'OK' : 'FAIL'}  ${check.id}: ${check.message}`);
+      }
     }
-  }
-  process.exit(report.ok ? 0 : 1);
+    process.exit(report.ok ? 0 : 1);
+  }).catch(error => {
+    console.error(error.message);
+    process.exit(1);
+  });
 }
 
 module.exports = { runChecks };

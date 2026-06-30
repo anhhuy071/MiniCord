@@ -650,7 +650,9 @@ function renderControlPaneHtml() {
       const response = await fetch(url);
       const snapshot = await readJsonResponse(response);
       $('#query').value = snapshot.knowledge.query || state.query;
-      $('#db-path').textContent = snapshot.database.exists ? snapshot.dbPath : 'database missing';
+      $('#db-path').textContent = snapshot.database.exists
+        ? snapshot.dbPath
+        : 'context graph database missing';
       $('#action-status').textContent = snapshot.execution.allowActions ? 'local allowlist' : 'read-only';
       renderMetrics(snapshot.summary);
       renderSessions(snapshot.sessions);

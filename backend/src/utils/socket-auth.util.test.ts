@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   assertChannelMember,
   assertConversationParticipant,
+  assertMessageOwner,
+  assertServerMember,
 } from './socket-auth.util.js';
 
 function createMockDb(overrides: {
@@ -11,6 +13,12 @@ function createMockDb(overrides: {
     id: string;
     userOneId: string;
     userTwoId: string;
+  } | null;
+  message?: {
+    id: string;
+    channelId: string;
+    authorId: string;
+    content: string;
   } | null;
 } = {}) {
   return {
@@ -27,6 +35,11 @@ function createMockDb(overrides: {
     conversation: {
       findUnique: vi.fn().mockResolvedValue(
         overrides.conversation !== undefined ? overrides.conversation : null,
+      ),
+    },
+    message: {
+      findUnique: vi.fn().mockResolvedValue(
+        overrides.message !== undefined ? overrides.message : null,
       ),
     },
   };
@@ -68,6 +81,74 @@ describe('assertChannelMember', () => {
     const result = await assertChannelMember('user-1', 'channel-1', db as any);
 
     expect(result).toEqual({ ok: true, channel });
+  });
+});
+
+describe('assertMessageOwner', () => {
+  const channel = { id: 'channel-1', serverId: 'server-1', name: 'general' };
+  const message = {
+    id: 'msg-1',
+    channelId: 'channel-1',
+    authorId: 'user-1',
+    content: 'Hello',
+  };
+
+  it('returns not_found when channel does not exist', async () => {
+    const db = createMockDb({ channel: null });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'not_found' });
+    expect(db.message.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns forbidden when user is not a channel member', async () => {
+    const db = createMockDb({ channel, member: null });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'forbidden' });
+    expect(db.message.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns not_found when message does not exist', async () => {
+    const db = createMockDb({ channel, member: { id: 'member-1' }, message: null });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'not_found' });
+  });
+
+  it('returns wrong_channel when message belongs to another channel', async () => {
+    const db = createMockDb({
+      channel,
+      member: { id: 'member-1' },
+      message: { ...message, channelId: 'channel-2' },
+    });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'wrong_channel' });
+  });
+
+  it('returns forbidden when user is not the author', async () => {
+    const db = createMockDb({
+      channel,
+      member: { id: 'member-1' },
+      message: { ...message, authorId: 'user-2' },
+    });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'forbidden' });
+  });
+
+  it('returns message and channel when user owns the message', async () => {
+    const db = createMockDb({ channel, member: { id: 'member-1' }, message });
+
+    const result = await assertMessageOwner('user-1', 'channel-1', 'msg-1', db as any);
+
+    expect(result).toEqual({ ok: true, message, channel });
   });
 });
 
@@ -134,5 +215,24 @@ describe('assertConversationParticipant', () => {
     );
 
     expect(result).toEqual({ ok: true, conversation });
+  });
+});
+
+describe('assertServerMember', () => {
+  it('returns forbidden when user is not a server member', async () => {
+    const db = createMockDb({ member: null });
+
+    const result = await assertServerMember('user-1', 'server-1', db as any);
+
+    expect(result).toEqual({ ok: false, reason: 'forbidden' });
+  });
+
+  it('returns member when user belongs to the server', async () => {
+    const member = { id: 'member-1', userId: 'user-1', serverId: 'server-1', role: 'MEMBER' };
+    const db = createMockDb({ member });
+
+    const result = await assertServerMember('user-1', 'server-1', db as any);
+
+    expect(result).toEqual({ ok: true, member });
   });
 });

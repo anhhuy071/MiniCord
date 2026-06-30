@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createControlPaneServer, parseArgs, usage } = require('./lib/control-pane/server');
+const { ensureHarnessStores } = require('./lib/harness-bootstrap');
 
 async function main() {
   const args = parseArgs(process.argv);
@@ -12,7 +13,12 @@ async function main() {
     process.exit(0);
   }
 
-  const repoRoot = path.resolve(options.repoRoot || require('./lib/observability-lib').resolveRepoRoot(process.cwd()));
+  await ensureHarnessStores({
+    dbPath: args.dbPath,
+    stateDbPath: args.stateDbPath,
+  });
+
+  const repoRoot = path.resolve(require('./lib/observability-lib').resolveRepoRoot(process.cwd()));
   const pane = createControlPaneServer({
     repoRoot,
     host: args.host,

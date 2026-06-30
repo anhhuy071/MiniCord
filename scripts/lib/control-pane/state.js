@@ -628,6 +628,7 @@ module.exports = {
   SNAPSHOT_SCHEMA_VERSION,
   buildControlPaneSnapshot,
   defaultConfigPaths,
+  defaultDbPath,
   defaultStateDbPath,
   recallKnowledgeEntries,
   resolveControlPaneConfig,

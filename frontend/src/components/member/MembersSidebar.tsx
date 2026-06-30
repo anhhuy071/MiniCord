@@ -1,14 +1,30 @@
 import MemberItem from "./MemberItem";
+import type { ServerMember } from "../../types/types";
 
-const members = [
-  { name: "Skyline", role: "Community Lead", status: "online" as const },
-  { name: "Nova", role: "Product Designer", status: "idle" as const },
-  { name: "Lumen", role: "Engineer", status: "online" as const },
-  { name: "Archer", role: "Moderator", status: "dnd" as const },
-  { name: "Zuri", role: "Member", status: "offline" as const },
-];
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+};
 
-export default function MembersSidebar() {
+function formatRole(role: string): string {
+  return ROLE_LABELS[role] ?? role;
+}
+
+type MembersSidebarProps = {
+  members: ServerMember[];
+  onlineUserIds: Set<string>;
+  isLoading?: boolean;
+};
+
+export default function MembersSidebar({
+  members,
+  onlineUserIds,
+  isLoading = false,
+}: MembersSidebarProps) {
+  const onlineMembers = members.filter((m) => onlineUserIds.has(m.userId));
+  const offlineMembers = members.filter((m) => !onlineUserIds.has(m.userId));
+
   return (
     <aside className="members-sidebar">
       <div className="members-header">
@@ -21,33 +37,45 @@ export default function MembersSidebar() {
       </div>
 
       <div className="members-scroll">
-        <div className="members-section">
-          <p className="members-section-title">Online — 3</p>
-          {members
-            .filter((member) => member.status !== "offline")
-            .map((member) => (
-              <MemberItem
-                key={member.name}
-                name={member.name}
-                role={member.role}
-                status={member.status}
-              />
-            ))}
-        </div>
+        {isLoading ? (
+          <p className="members-section-title" style={{ padding: "8px 12px" }}>
+            Loading members…
+          </p>
+        ) : members.length === 0 ? (
+          <p className="members-section-title" style={{ padding: "8px 12px" }}>
+            No members
+          </p>
+        ) : (
+          <>
+            <div className="members-section">
+              <p className="members-section-title">
+                Online — {onlineMembers.length}
+              </p>
+              {onlineMembers.map((member) => (
+                <MemberItem
+                  key={member.id}
+                  name={member.user.username}
+                  role={formatRole(member.role)}
+                  status="online"
+                />
+              ))}
+            </div>
 
-        <div className="members-section">
-          <p className="members-section-title">Offline — 1</p>
-          {members
-            .filter((member) => member.status === "offline")
-            .map((member) => (
-              <MemberItem
-                key={member.name}
-                name={member.name}
-                role={member.role}
-                status={member.status}
-              />
-            ))}
-        </div>
+            <div className="members-section">
+              <p className="members-section-title">
+                Offline — {offlineMembers.length}
+              </p>
+              {offlineMembers.map((member) => (
+                <MemberItem
+                  key={member.id}
+                  name={member.user.username}
+                  role={formatRole(member.role)}
+                  status="offline"
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </aside>
   );

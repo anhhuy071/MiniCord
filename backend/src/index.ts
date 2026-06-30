@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes.js';
 import dmRoutes from './routes/dm.routes.js';
 import { requireSocketAuth, AuthSocket } from './middleware/socket.middleware.js';
 import { assertChannelMember, assertConversationParticipant } from './utils/socket-auth.util.js';
+import { deleteOwnChannelMessage, isValidChatDeletePayload } from './services/chat-socket.service.js';
 import { chronologicalFromLatest } from './utils/message-query.util.js';
 
 import { Server as SocketIOServer } from "socket.io";
@@ -96,6 +97,7 @@ io.on("connection", (rawSocket) => {
         channelId: channel.id,
         room: channel.name,
         author: m.author.username,
+        authorId: m.author.id,
         content: m.content,
         createdAt: m.createdAt.toISOString()
       }));
@@ -125,7 +127,7 @@ io.on("connection", (rawSocket) => {
            authorId: socket.data.user.userId,
            channelId: channel.id
          },
-         include: { author: { select: { username: true } } }
+         include: { author: { select: { username: true, id: true } } }
        });
 
        const formattedMessage = {
@@ -133,6 +135,7 @@ io.on("connection", (rawSocket) => {
          channelId: channel.id,
          room: channel.name,
          author: newMessage.author.username,
+         authorId: newMessage.author.id,
          content: newMessage.content,
          createdAt: newMessage.createdAt.toISOString()
        };
@@ -140,6 +143,24 @@ io.on("connection", (rawSocket) => {
        io.to(channelId).emit("chat:message", { channelId: channel.id, message: formattedMessage });
     } catch (err) {
       console.error("Error saving message:", err);
+    }
+  });
+
+  socket.on("chat:delete", async (payload) => {
+    if (!isValidChatDeletePayload(payload)) return;
+
+    const { channelId, messageId } = payload;
+
+    try {
+      const result = await deleteOwnChannelMessage(userId, channelId, messageId);
+      if (!result.ok) {
+        socket.emit("chat:error", { channelId, message: result.errorMessage });
+        return;
+      }
+
+      io.to(channelId).emit("chat:deleted", result.broadcast);
+    } catch (err) {
+      console.error("Error deleting message:", err);
     }
   });
 
