@@ -1,0 +1,26 @@
+{
+  "_securityNotice": "Browser automation MCPs can navigate URLs and run scripts. Enable only for local/dev testing. Set allowed hosts in your project before use.",
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@0.0.5",
+        "--browser",
+        "chrome",
+        "--allowed-hosts",
+        "localhost,127.0.0.1"
+      ],
+      "env": {},
+      "description": "Browser automation and testing via Playwright — restricted to localhost by default"
+    },
+    "browserbase": {
+      "command": "npx",
+      "args": ["@browserbasehq/mcp-server-browserbase@2.0.0"],
+      "env": {
+        "BROWSERBASE_API_KEY": "${BROWSERBASE_API_KEY}",
+        "BROWSERBASE_PROJECT_ID": "${BROWSERBASE_PROJECT_ID}"
+      },
+      "description": "Cloud browser sessions via Browserbase — configure domain allowlists in Browserbase dashboard before enabling"
+    }
+  }
+}

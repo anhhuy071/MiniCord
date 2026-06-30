@@ -124,7 +124,7 @@ Output solutions (at least 2), wait for user selection.
 - Context: Analysis results from Phase 2
 - OUTPUT: Component structure, UI flow, styling approach
 
-Claude synthesizes plan, save to `.claude/plan/task-name.md` after user approval.
+Cursor synthesizes plan, save to `.cursor/plans/task-name.md` after user approval.
 
 ### Phase 4: Implementation
 

@@ -1,0 +1,24 @@
+name: Bug report
+description: Report incorrect behavior in MiniCord
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Steps to reproduce and expected vs actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend
+        - Backend / API
+        - Socket / real-time
+        - Harness / tooling
+        - Other
+    validations:
+      required: true

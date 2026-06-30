@@ -16,7 +16,7 @@ You (Cursor chat)
     → Slash commands (/plan, /feature-dev)
     → Skills (auto or explicit)
     → Agent → MiniCord code
-    → Hooks → ~/.claude/metrics logs (automatic)
+    → Hooks → ~/.cursor/ecc/metrics logs (automatic)
 ```
 
 ## Setup
@@ -48,9 +48,11 @@ See [HARNESS.md](./HARNESS.md) for log locations, CLI reference, and environment
 
 ### Log directory
 
-Default (Windows): `%USERPROFILE%\.claude\metrics\`
+Default (Windows): `%USERPROFILE%\.cursor\ecc\metrics\`
 
-Override: set `ECC_METRICS_DIR` to a custom path.
+Legacy Claude Code installs: `%USERPROFILE%\.claude\metrics\`
+
+Override: set `ECC_METRICS_DIR` or `ECC_AGENT_DATA_HOME`.
 
 | File | What it contains |
 |------|------------------|
@@ -69,9 +71,9 @@ Override: set `ECC_METRICS_DIR` to a custom path.
 ### Tail logs (PowerShell)
 
 ```powershell
-Get-Content $env:USERPROFILE\.claude\metrics\harness.log.jsonl -Tail 10
-Get-Content $env:USERPROFILE\.claude\metrics\subagents.jsonl -Tail 10
-Get-Content $env:USERPROFILE\.claude\metrics\tool-usage.jsonl -Tail 10
+Get-Content $env:USERPROFILE\.cursor\ecc\metrics\harness.log.jsonl -Tail 10
+Get-Content $env:USERPROFILE\.cursor\ecc\metrics\subagents.jsonl -Tail 10
+Get-Content $env:USERPROFILE\.cursor\ecc\metrics\tool-usage.jsonl -Tail 10
 ```
 
 ### When logs look empty

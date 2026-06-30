@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-25 | Files scanned: 59 | Token estimate: ~600 -->
+<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~620 -->
 
 # Data Architecture
 
@@ -26,9 +26,12 @@ Conversation ──< DirectMessage
 | **Server** | id, name, imageUrl, ownerId | channels, members |
 | **ServerMember** | userId, serverId, role (OWNER/MEMBER/ADMIN) | @@unique([userId, serverId]) |
 | **Channel** | name, type (TEXT/VOICE), serverId | @@unique([name, serverId]) |
-| **Message** | content, authorId, channelId, fileUrl? | text channel messages |
+| **Message** | content, authorId, channelId, fileUrl? | text channel messages (hard delete on user delete) |
 | **Conversation** | userOneId, userTwoId | @@unique([userOneId, userTwoId]) |
 | **DirectMessage** | content, authorId, conversationId | DM messages |
+
+## API Payload Notes
+Socket/API message DTOs include `authorId` for ownership checks in UI; schema unchanged.
 
 ## Cascade Deletes
 All relations use `onDelete: Cascade`.

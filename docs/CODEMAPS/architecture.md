@@ -1,9 +1,9 @@
-<!-- Generated: 2026-06-25 | Files scanned: 59 | Token estimate: ~650 -->
+<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~720 -->
 
 # MiniCord Architecture
 
 ## Project Type
-Monorepo-style demo app: **React SPA + Express API + Socket.IO + MongoDB** (Docker Compose for local dev).
+Monorepo-style demo app: **React SPA + Express API + Socket.IO + MongoDB** (Docker Compose for local dev). Root `package.json` is ECC agent harness (observability scripts) — not runtime.
 
 ## System Boundaries
 
@@ -31,11 +31,15 @@ Monorepo-style demo app: **React SPA + Express API + Socket.IO + MongoDB** (Dock
 ## Data Flow (Real-Time Chat)
 
 ```
-User types message
-  → useSocket.sendMessage → emit chat:send
-  → index.ts handler → prisma.message.create
-  → io.to(channelId).emit chat:message
-  → useSocket listener → MainContent re-render
+Send:
+  User types → useSocket.sendMessage → emit chat:send
+  → index.ts → prisma.message.create → io.to(channelId).emit chat:message
+  → useSocket (appendChannelMessage) → MainContent re-render
+
+Delete (own messages):
+  User clicks delete → useSocket.deleteMessage → emit chat:delete
+  → chat-socket.service.deleteOwnChannelMessage → prisma.message.delete
+  → io.to(channelId).emit chat:deleted → removeChannelMessage in client state
 ```
 
 ## Data Flow (Voice)
@@ -53,11 +57,13 @@ VoicePanel → useVoiceRoom → getUserMedia + voice:join
 ## Key Directories
 ```
 MiniCord/
-├── frontend/src/     # React UI, hooks, API client
-├── backend/src/      # Express routes, Socket handlers, middleware
-├── backend/prisma/   # schema.prisma, seed.ts
+├── frontend/src/       # React UI, hooks, utils, component tests
+├── backend/src/        # Express routes, services, Socket handlers
+├── backend/prisma/     # schema.prisma, seed.ts
+├── docs/CODEMAPS/      # Architecture docs (this folder)
+├── scripts/            # ECC harness / observability (dev tooling)
 └── docker-compose.yml
 ```
 
 ## Auth Model
-JWT (Bearer header for REST, `auth.token` for Socket.IO handshake). Token signed in `backend/src/utils/jwt.util.ts`.
+JWT (Bearer header for REST, `auth.token` for Socket.IO handshake). Token signed in `backend/src/utils/jwt.util.ts`. Channel/DM socket actions gated by `socket-auth.util.ts` helpers.

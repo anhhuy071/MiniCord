@@ -1,5 +1,5 @@
 # =============================================================================
-# MiniCord — React + Node/Express + Prisma/MongoDB
+# MiniCord — React + Node/Express + Prisma/MongoDB + ECC Cursor harness
 # =============================================================================
 
 # --- OS ---
@@ -25,6 +25,7 @@ frontend/dist/
 .env
 .env.*
 !.env.example
+!**/.env.example
 *.local
 
 # --- Database ---
@@ -37,6 +38,9 @@ backend/src/generated/prisma/
 coverage/
 .nyc_output/
 jest.cache
+test-results/
+playwright-report/
+blob-report/
 
 # --- Logs & caches ---
 logs/
@@ -49,6 +53,7 @@ pnpm-debug.log*
 .cache/
 .serverless/
 .npm/
+.turbo/
 
 # --- IDE (keep shared team settings) ---
 .vscode/*
@@ -66,16 +71,30 @@ pnpm-debug.log*
 # --- Package artifacts ---
 *.tgz
 
-# --- Local agent / plugin trees (do not commit) ---
+# --- Legacy Claude Code (prefer .cursor/ in this repo) ---
+.claude/
+
+# --- Cursor agents & skills (local harness packs — do not commit) ---
 .agents/
 .cursor/agents/
 .cursor/.agents/
+.cursor/skills/
+.cursor/library/skills/
+
+# --- Cursor harness: local / machine-specific ---
+.cursor/ecc-install-state.json
+.cursor/ecc-agent-data.json
+.cursor/package-manager.json
+.cursor/ecc/
+
+# Session-local agent artifacts (committed harness: rules, commands, tdd)
+.cursor/plans/
+.cursor/prds/
+.cursor/reviews/
+.cursor/PRPs/
+.cursor/checkpoints.log
 
 # --- Harness runtime outputs (local only) ---
 .reports/
 .orchestration/
 ecc-install-state.json
-.cursor/ecc-install-state.json
-
-# --- Optional local learning artifacts ---
-.cursor/skills/learned/

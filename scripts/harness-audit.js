@@ -822,6 +822,47 @@ function isCursorHarness(rootDir) {
   return fileExists(rootDir, '.cursor/hooks.json');
 }
 
+function hasCursorProjectHarness(rootDir) {
+  if (!isCursorHarness(rootDir)) {
+    return false;
+  }
+
+  return (
+    countFiles(rootDir, '.cursor/commands', '.md') > 0
+    || countFiles(rootDir, '.cursor/skills', 'SKILL.md') > 0
+    || countFiles(rootDir, '.cursor/library/commands', '.md') > 0
+    || countFiles(rootDir, '.cursor/library/skills', 'SKILL.md') > 0
+  );
+}
+
+function hasProjectHarnessOverrides(rootDir) {
+  return (
+    countFiles(rootDir, '.claude/agents', '.md') > 0
+    || countFiles(rootDir, '.claude/skills', 'SKILL.md') > 0
+    || countFiles(rootDir, '.claude/commands', '.md') > 0
+    || fileExists(rootDir, '.claude/settings.json')
+    || fileExists(rootDir, '.claude/hooks.json')
+    || hasCursorProjectHarness(rootDir)
+  );
+}
+
+function hasEvalSlashCommand(rootDir) {
+  return (
+    fileExists(rootDir, '.cursor/commands/eval-check.md')
+    || fileExists(rootDir, '.cursor/library/commands/eval-check.md')
+    || fileExists(rootDir, 'commands/eval-check.md')
+  );
+}
+
+function readProjectHookGuardrails(rootDir) {
+  const sources = [
+    safeRead(rootDir, '.claude/settings.json'),
+    safeRead(rootDir, '.cursor/hooks.json'),
+    safeRead(rootDir, '.claude/hooks.json'),
+  ];
+  return sources.join('\n');
+}
+
 function getCursorObservabilityChecks(rootDir) {
   if (!isCursorHarness(rootDir)) {
     return [];
@@ -851,9 +892,8 @@ function getCursorObservabilityChecks(rootDir) {
       path: 'scripts/observability-readiness.js',
       description: 'Observability readiness CLI and session inspect exist',
       pass: fileExists(rootDir, 'scripts/observability-readiness.js')
-        && fileExists(rootDir, 'scripts/session-inspect.js')
-        && fileExists(rootDir, 'scripts/control-pane.js'),
-      fix: 'Add observability-readiness.js, session-inspect.js, and control-pane.js CLIs.',
+        && fileExists(rootDir, 'scripts/session-inspect.js'),
+      fix: 'Add observability-readiness.js and session-inspect.js CLIs.',
     },
     {
       id: 'cursor-orchestration-clis',
@@ -874,7 +914,7 @@ function getCursorObservabilityChecks(rootDir) {
       path: 'scripts/eval-runner.js',
       description: 'Eval runner CLI and eval slash commands exist',
       pass: fileExists(rootDir, 'scripts/eval-runner.js')
-        && fileExists(rootDir, '.cursor/commands/eval-check.md'),
+        && hasEvalSlashCommand(rootDir),
       fix: 'Add scripts/eval-runner.js and /eval define|check|report commands.',
     },
     {
@@ -893,8 +933,9 @@ function getCursorObservabilityChecks(rootDir) {
 function getConsumerChecks(rootDir) {
   const packageJson = safeParseJson(safeRead(rootDir, 'package.json'));
   const gitignore = safeRead(rootDir, '.gitignore');
-  const projectHooks = safeRead(rootDir, '.claude/settings.json');
+  const projectHooks = readProjectHookGuardrails(rootDir);
   const pluginInstall = findPluginInstall(rootDir);
+  const cursorHarness = hasCursorProjectHarness(rootDir);
 
   return [
     {
@@ -902,24 +943,20 @@ function getConsumerChecks(rootDir) {
       category: 'Tool Coverage',
       points: 4,
       scopes: ['repo'],
-      path: '~/.claude/plugins/ecc/ (legacy everything-claude-code paths also supported)',
-      description: 'Everything Claude Code is installed for the active user or project',
-      pass: Boolean(pluginInstall),
-      fix: 'Install the ECC plugin for this user or project before auditing project-specific harness quality.',
+      path: '~/.claude/plugins/ecc/ or .cursor/ harness',
+      description: 'ECC plugin or checked-in Cursor harness is available',
+      pass: Boolean(pluginInstall) || cursorHarness,
+      fix: 'Install the ECC plugin or keep the project .cursor/ harness (hooks, commands, skills).',
     },
     {
       id: 'consumer-project-overrides',
       category: 'Tool Coverage',
       points: 3,
       scopes: ['repo', 'hooks', 'skills', 'commands', 'agents'],
-      path: '.claude/',
-      description: 'Project-specific harness overrides exist under .claude/',
-      pass: countFiles(rootDir, '.claude/agents', '.md') > 0 ||
-        countFiles(rootDir, '.claude/skills', 'SKILL.md') > 0 ||
-        countFiles(rootDir, '.claude/commands', '.md') > 0 ||
-        fileExists(rootDir, '.claude/settings.json') ||
-        fileExists(rootDir, '.claude/hooks.json'),
-      fix: 'Add project-local .claude hooks, commands, skills, or settings that tailor ECC to this repo.',
+      path: '.cursor/ or .claude/',
+      description: 'Project-specific harness overrides exist under .cursor/ or .claude/',
+      pass: hasProjectHarnessOverrides(rootDir),
+      fix: 'Add project-local .cursor (or .claude) hooks, commands, skills, or settings tailored to this repo.',
     },
     {
       id: 'consumer-instructions',
@@ -937,9 +974,13 @@ function getConsumerChecks(rootDir) {
       points: 2,
       scopes: ['repo', 'hooks'],
       path: '.mcp.json',
-      description: 'The project declares local MCP or Claude settings',
-      pass: fileExists(rootDir, '.mcp.json') || fileExists(rootDir, '.claude/settings.json') || fileExists(rootDir, '.claude/settings.local.json'),
-      fix: 'Add .mcp.json or .claude/settings.json so project-local tool configuration is explicit.',
+      description: 'The project declares local MCP or harness settings',
+      pass: fileExists(rootDir, '.mcp.json')
+        || fileExists(rootDir, '.claude/settings.json')
+        || fileExists(rootDir, '.claude/settings.local.json')
+        || fileExists(rootDir, '.cursor/hooks.json')
+        || fileExists(rootDir, '.cursor/mcp-configs/mcp-servers.json'),
+      fix: 'Add .mcp.json, .cursor/hooks.json, or MCP config under .cursor/mcp-configs/.',
     },
     {
       id: 'consumer-test-suite',
@@ -968,8 +1009,10 @@ function getConsumerChecks(rootDir) {
       scopes: ['repo'],
       path: '.claude/memory.md',
       description: 'Project memory or durable notes are checked in',
-      pass: fileExists(rootDir, '.claude/memory.md') || countFiles(rootDir, 'docs/adr', '.md') > 0,
-      fix: 'Add durable project memory such as .claude/memory.md or ADRs under docs/adr/.',
+      pass: fileExists(rootDir, '.claude/memory.md')
+        || fileExists(rootDir, '.cursor/memory.md')
+        || countFiles(rootDir, 'docs/adr', '.md') > 0,
+      fix: 'Add durable project memory such as .cursor/memory.md or ADRs under docs/adr/.',
     },
     {
       id: 'consumer-eval-coverage',
@@ -1008,8 +1051,12 @@ function getConsumerChecks(rootDir) {
       scopes: ['repo', 'hooks'],
       path: '.claude/settings.json',
       description: 'Project-local hook settings reference tool/prompt guardrails',
-      pass: projectHooks.includes('PreToolUse') || projectHooks.includes('beforeSubmitPrompt') || fileExists(rootDir, '.claude/hooks.json'),
-      fix: 'Add project-local hook settings or hook definitions for prompt/tool guardrails.',
+      pass: projectHooks.includes('PreToolUse')
+        || projectHooks.includes('beforeSubmitPrompt')
+        || projectHooks.includes('beforeMCPExecution')
+        || fileExists(rootDir, '.claude/hooks.json')
+        || fileExists(rootDir, '.cursor/hooks.json'),
+      fix: 'Add project-local hook settings or .cursor/hooks.json guardrails for prompts and tools.',
     },
     ...buildGithubChecks(rootDir),
     ...collectProviderChecks(rootDir, packageJson),

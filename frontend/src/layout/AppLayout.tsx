@@ -3,6 +3,8 @@ import ServerSidebar from "../components/server/ServerSidebar";
 import ChannelSidebar from "../components/channel/ChannelSidebar";
 import MainContent from "../components/main/MainContent";
 import MembersSidebar from "../components/member/MembersSidebar";
+import DirectMessagePanel from "../components/dm/DirectMessagePanel";
+import ConversationList from "../components/dm/ConversationList";
 import Topbar from "../components/common/Topbar";
 import ServerModal from "../components/server/ServerModal";
 import ChannelModal from "../components/channel/ChannelModal";
@@ -10,16 +12,29 @@ import VoicePanel from "../components/channel/VoicePanel";
 import type { Server, Channel, ServerMember } from "../types/types";
 import { fetchApi } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
+import { useDirectMessages } from "../hooks/useDirectMessages";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppLayout() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [servers, setServers] = useState<Server[]>([]);
   const [activeServer, setActiveServer] = useState<Server | null>(null);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState<Channel | null>(null);
 
   const { socket, messages, voicePresence, onlineUserIds, isConnected, sendMessage, deleteMessage, error } = useSocket(activeChannel?.id, token);
+
+  const {
+    conversations,
+    activeConversation,
+    messages: dmMessages,
+    unreadByConversation,
+    error: dmError,
+    openConversationWithUser,
+    selectConversation,
+    closeConversation,
+    sendMessage: sendDirectMessage,
+  } = useDirectMessages(socket, isConnected, user?.id, user?.username);
 
   const [members, setMembers] = useState<ServerMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -82,6 +97,7 @@ export default function AppLayout() {
   }, [activeServer?.id, loadMembers]);
 
   const handleSelectServer = (server: Server) => {
+    closeConversation();
     setActiveServer(server);
     if (server.channels && server.channels.length > 0) {
       setActiveChannel(server.channels[0]);
@@ -95,7 +111,6 @@ export default function AppLayout() {
   };
 
   const handleChannelSuccess = (channel: Channel) => {
-    // Immediately add channel to active server
     if (activeServer) {
       const updatedServer = {
         ...activeServer,
@@ -108,11 +123,20 @@ export default function AppLayout() {
   };
 
   const handleSelectChannel = (channel: Channel) => {
+    closeConversation();
     if (channel.type === "VOICE") {
       setActiveVoiceChannel(channel);
     } else {
       setActiveChannel(channel);
     }
+  };
+
+  const handleMessageMember = async (targetUserId: string) => {
+    await openConversationWithUser(targetUserId);
+  };
+
+  const handleBackFromDm = () => {
+    closeConversation();
   };
 
   return (
@@ -133,6 +157,15 @@ export default function AppLayout() {
             onSelectChannel={handleSelectChannel} 
             onOpenChannelModal={() => setIsChannelModalOpen(true)}
           />
+          {user?.id ? (
+            <ConversationList
+              conversations={conversations}
+              activeConversationId={activeConversation?.id ?? null}
+              currentUserId={user.id}
+              unreadByConversation={unreadByConversation}
+              onSelect={selectConversation}
+            />
+          ) : null}
           {activeVoiceChannel && (
             <VoicePanel 
               channelId={activeVoiceChannel.id} 
@@ -142,7 +175,17 @@ export default function AppLayout() {
             />
           )}
         </div>
-        {activeChannel && (
+        {activeConversation ? (
+          <DirectMessagePanel
+            conversation={activeConversation}
+            messages={dmMessages}
+            isConnected={isConnected}
+            onlineUserIds={onlineUserIds}
+            sendMessage={sendDirectMessage}
+            onBack={handleBackFromDm}
+            error={dmError}
+          />
+        ) : activeChannel ? (
           <MainContent 
             channelName={activeChannel.name} 
             channelId={activeChannel.id} 
@@ -152,11 +195,13 @@ export default function AppLayout() {
             deleteMessage={deleteMessage}
             error={error}
           />
-        )}
+        ) : null}
         <MembersSidebar
           members={members}
           onlineUserIds={onlineUserIds}
+          currentUserId={user?.id}
           isLoading={membersLoading}
+          onMessageMember={handleMessageMember}
         />
       </div>
 

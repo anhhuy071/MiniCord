@@ -1,0 +1,13 @@
+{
+  "_securityNotice": "Filesystem MCP grants read/write access. Set PROJECT_ROOT to your workspace path only — never use / or drive roots.",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem@0.6.2", "${PROJECT_ROOT}"],
+      "env": {
+        "PROJECT_ROOT": "${PROJECT_ROOT}"
+      },
+      "description": "Filesystem operations scoped to PROJECT_ROOT only. Set PROJECT_ROOT to your workspace path before enabling."
+    }
+  }
+}

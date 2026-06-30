@@ -13,7 +13,7 @@ alwaysApply: true
 
 Types: feat, fix, refactor, docs, test, chore, perf, ci
 
-Note: Attribution disabled globally via ~/.claude/settings.json.
+Note: Follow conventional commit format; omit AI attribution in commit messages.
 
 ## Pull Request Workflow
 

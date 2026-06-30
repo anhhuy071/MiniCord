@@ -27,7 +27,7 @@ Agent/harness observability entry point. **Use CLI and JSONL logs** — not a we
 
 ## Log sinks
 
-All observability events append to `~/.claude/metrics/` (Windows: `%USERPROFILE%\.claude\metrics\`). Override with `ECC_METRICS_DIR`:
+Cursor default: `~/.cursor/ecc/metrics/` (Windows: `%USERPROFILE%\.cursor\ecc\metrics\`). Legacy Claude Code installs use `~/.claude/metrics/`. Override with `ECC_METRICS_DIR` or `ECC_AGENT_DATA_HOME`:
 
 | File | Contents |
 |------|----------|
@@ -44,8 +44,8 @@ Live bridge metrics: `%TEMP%/ecc-metrics-{sessionId}.json` (or OS temp dir).
 ## Tail logs (user terminal)
 
 ```powershell
-Get-Content $env:USERPROFILE\.claude\metrics\harness.log.jsonl -Tail 10
-Get-Content $env:USERPROFILE\.claude\metrics\subagents.jsonl -Tail 10
+Get-Content $env:USERPROFILE\.cursor\ecc\metrics\harness.log.jsonl -Tail 10
+Get-Content $env:USERPROFILE\.cursor\ecc\metrics\subagents.jsonl -Tail 10
 ```
 
 See [HARNESS.md](../../HARNESS.md) and [HARNESS-SKILLS.md](../../HARNESS-SKILLS.md) for full reference.

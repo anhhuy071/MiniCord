@@ -16,7 +16,7 @@ Produces a **Product Requirements Document** — the requirements-phase artifact
 | Frame the problem and users | Design the architecture |
 | Capture success criteria and scope | Pick files or write patterns |
 | List open questions and risks | Enumerate implementation tasks |
-| Write `.claude/prds/{name}.prd.md` | Produce an implementation plan — that's `/plan` |
+| Write `.cursor/prds/{name}.prd.md` | Produce an implementation plan — that's `/plan` |
 
 If you find yourself writing implementation detail, stop and cut it. It belongs in `/plan`.
 
@@ -69,10 +69,10 @@ Wait for responses.
 Create the directory if needed, write the PRD, and report.
 
 ```bash
-mkdir -p .claude/prds
+mkdir -p .cursor/prds
 ```
 
-**Output path**: `.claude/prds/{kebab-case-name}.prd.md`
+**Output path**: `.cursor/prds/{kebab-case-name}.prd.md`
 
 #### PRD Template
 
@@ -128,7 +128,7 @@ We'll know we're right when **{measurable outcome}**.
 #### Report to user
 
 ```
-PRD created: .claude/prds/{name}.prd.md
+PRD created: .cursor/prds/{name}.prd.md
 
 Problem:    {one line}
 Hypothesis: {one line}
@@ -141,7 +141,7 @@ Validation status:
 
 Open questions: {count}
 
-Next step: /plan .claude/prds/{name}.prd.md
+Next step: /plan .cursor/prds/{name}.prd.md
   → /plan will pick the next pending milestone and produce an implementation plan.
 ```
 

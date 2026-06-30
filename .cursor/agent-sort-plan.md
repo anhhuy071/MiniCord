@@ -100,6 +100,7 @@ Kept under `.cursor/library/` — searchable, not default-loaded.
 | PROMOTE | `typescript-*` rules → `alwaysApply: true` |
 | CREATE | `.cursor/skills/skill-library/SKILL.md` router |
 | CREATE | `.cursor/agent-sort-plan.md` (this file) |
+| ARTIFACTS | Project plans/PRDs/reviews/TDD under `.cursor/{plans,prds,reviews,tdd}/` |
 
 No off-stack language packs were installed (no python/golang/flutter rules present).
 

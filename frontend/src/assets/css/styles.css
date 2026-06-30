@@ -713,16 +713,76 @@ button {
   gap: 0.6rem;
   padding: 0.4rem 0.5rem;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   transition: background 0.15s ease;
 }
 
-.member-item:focus-visible {
+.member-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.member-item-main:focus-visible {
   outline: 1px solid var(--border-hover);
 }
 
-.member-item:hover {
+.member-item-main:hover {
   background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+}
+
+.member-message-button {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.member-item:hover .member-message-button,
+.member-message-button:focus-visible {
+  opacity: 1;
+}
+
+.dm-conversation-list {
+  border-top: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.dm-conversation-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dm-conversation-item:hover,
+.dm-conversation-item.is-active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dm-unread-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent, #5865f2);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .member-avatar {
@@ -829,10 +889,6 @@ button {
   align-items: flex-start;
 }
 
-.chat-message:hover .message-delete-button {
-  opacity: 1;
-}
-
 .message-heading-end {
   display: flex;
   align-items: center;
@@ -840,11 +896,16 @@ button {
 }
 
 .message-delete-button {
-  opacity: 0;
+  opacity: 0.55;
   padding: 0.15rem 0.35rem;
   font-size: 0.75rem;
   color: var(--text-muted);
   transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.chat-message--own:hover .message-delete-button,
+.chat-message--own .message-delete-button:focus-visible {
+  opacity: 1;
 }
 
 .message-delete-button:hover {

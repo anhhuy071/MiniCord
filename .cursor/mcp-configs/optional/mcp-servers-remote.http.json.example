@@ -1,0 +1,56 @@
+{
+  "_securityNotice": "Remote HTTP MCP servers send tool calls and results over the network. Enable only servers you trust. Copy entries individually into mcp.json after setting required env vars.",
+  "mcpServers": {
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com",
+      "description": "Vercel deployments and projects"
+    },
+    "cloudflare-docs": {
+      "type": "http",
+      "url": "https://docs.mcp.cloudflare.com/mcp",
+      "description": "Cloudflare documentation search"
+    },
+    "cloudflare-workers-builds": {
+      "type": "http",
+      "url": "https://builds.mcp.cloudflare.com/mcp",
+      "description": "Cloudflare Workers builds"
+    },
+    "cloudflare-workers-bindings": {
+      "type": "http",
+      "url": "https://bindings.mcp.cloudflare.com/mcp",
+      "description": "Cloudflare Workers bindings"
+    },
+    "cloudflare-observability": {
+      "type": "http",
+      "url": "https://observability.mcp.cloudflare.com/mcp",
+      "description": "Cloudflare observability/logs"
+    },
+    "clickhouse": {
+      "type": "http",
+      "url": "https://mcp.clickhouse.cloud/mcp",
+      "description": "ClickHouse analytics queries"
+    },
+    "parallel-search": {
+      "type": "http",
+      "url": "https://search.parallel.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${PARALLEL_API_KEY}"
+      },
+      "description": "Parallel Web Search — LLM-optimized web_search and web_fetch tools. Set PARALLEL_API_KEY for higher rate limits."
+    },
+    "browser-use": {
+      "type": "http",
+      "url": "https://api.browser-use.com/mcp",
+      "headers": {
+        "x-browser-use-api-key": "${BROWSER_USE_API_KEY}"
+      },
+      "description": "AI browser agent for web tasks — restrict to trusted domains in your Browser Use project settings before enabling."
+    },
+    "laraplugins": {
+      "type": "http",
+      "url": "https://laraplugins.io/mcp/plugins",
+      "description": "Laravel plugin discovery — search packages by keyword, health score, Laravel/PHP version compatibility."
+    }
+  }
+}

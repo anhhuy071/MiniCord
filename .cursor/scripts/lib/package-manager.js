@@ -149,11 +149,11 @@ function getAvailablePackageManagers() {
  * Get the package manager to use for current project
  *
  * Detection priority:
- * 1. Environment variable CLAUDE_PACKAGE_MANAGER
- * 2. Project-specific config (in .claude/package-manager.json)
+ * 1. Environment variable ECC_PACKAGE_MANAGER or CLAUDE_PACKAGE_MANAGER (legacy)
+ * 2. Project-specific config (.cursor/package-manager.json, then .claude/package-manager.json)
  * 3. package.json packageManager field
  * 4. Lock file detection
- * 5. Global user preference (in ~/.claude/package-manager.json)
+ * 5. Global user preference (in agent data home via getClaudeDir())
  * 6. Default to npm (no child processes spawned)
  *
  * @param {object} options - Options
@@ -164,7 +164,7 @@ function getPackageManager(options = {}) {
   const { projectDir = process.cwd() } = options;
 
   // 1. Check environment variable
-  const envPm = process.env.CLAUDE_PACKAGE_MANAGER;
+  const envPm = process.env.ECC_PACKAGE_MANAGER || process.env.CLAUDE_PACKAGE_MANAGER;
   if (envPm && PACKAGE_MANAGERS[envPm]) {
     return {
       name: envPm,
@@ -173,10 +173,14 @@ function getPackageManager(options = {}) {
     };
   }
 
-  // 2. Check project-specific config
-  const projectConfigPath = path.join(projectDir, '.claude', 'package-manager.json');
-  const projectConfig = readFile(projectConfigPath);
-  if (projectConfig) {
+  // 2. Check project-specific config (Cursor first, then legacy Claude path)
+  const projectConfigCandidates = [
+    path.join(projectDir, '.cursor', 'package-manager.json'),
+    path.join(projectDir, '.claude', 'package-manager.json'),
+  ];
+  for (const projectConfigPath of projectConfigCandidates) {
+    const projectConfig = readFile(projectConfigPath);
+    if (!projectConfig) continue;
     try {
       const config = JSON.parse(projectConfig);
       if (config.packageManager && PACKAGE_MANAGERS[config.packageManager]) {
@@ -187,7 +191,7 @@ function getPackageManager(options = {}) {
         };
       }
     } catch {
-      // Invalid config
+      // Invalid config, try next candidate
     }
   }
 
@@ -264,7 +268,7 @@ function setProjectPackageManager(pmName, projectDir = process.cwd()) {
     throw new Error(`Unknown package manager: ${pmName}`);
   }
 
-  const configDir = path.join(projectDir, '.claude');
+  const configDir = path.join(projectDir, '.cursor');
   const configPath = path.join(configDir, 'package-manager.json');
 
   const config = {
@@ -350,8 +354,8 @@ function getSelectionPrompt() {
   let message = '[PackageManager] No package manager preference detected.\n';
   message += 'Supported package managers: ' + Object.keys(PACKAGE_MANAGERS).join(', ') + '\n';
   message += '\nTo set your preferred package manager:\n';
-  message += '  - Global: Set CLAUDE_PACKAGE_MANAGER environment variable\n';
-  message += '  - Or add to ~/.claude/package-manager.json: {"packageManager": "pnpm"}\n';
+  message += '  - Global: Set ECC_PACKAGE_MANAGER environment variable\n';
+  message += '  - Or add to ~/.cursor/ecc/package-manager.json: {"packageManager": "pnpm"}\n';
   message += '  - Or add to package.json: {"packageManager": "pnpm@8"}\n';
   message += '  - Or add a lock file to your project (e.g., pnpm-lock.yaml)\n';
 

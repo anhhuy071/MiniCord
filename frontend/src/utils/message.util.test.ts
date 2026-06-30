@@ -9,6 +9,7 @@ import {
   removeChannelMessage,
   isOwnChannelMessage,
   planDeleteMessage,
+  shouldRemoveMessageLocallyOnDelete,
 } from './message.util';
 import type { Message } from '../types/types';
 
@@ -126,6 +127,15 @@ describe('isOwnChannelMessage', () => {
     expect(isOwnChannelMessage(serverMessage, { id: 'user-1', username: 'alice' })).toBe(true);
   });
 
+  it('falls back to username when session user has no id but message has authorId', () => {
+    expect(
+      isOwnChannelMessage(
+        { ...serverMessage, authorId: 'user-1', author: 'alice' },
+        { username: 'alice' },
+      ),
+    ).toBe(true);
+  });
+
   it('returns false when user is null', () => {
     expect(isOwnChannelMessage(serverMessage, null)).toBe(false);
   });
@@ -156,6 +166,16 @@ describe('planDeleteMessage', () => {
         isConnected: true,
       }),
     ).toEqual({ type: 'emit', channelId: 'ch-1', messageId: 'msg-1' });
+  });
+});
+
+describe('shouldRemoveMessageLocallyOnDelete', () => {
+  it('returns true only for local optimistic deletes', () => {
+    expect(shouldRemoveMessageLocallyOnDelete({ type: 'local', messageId: 'temp-1' })).toBe(true);
+    expect(
+      shouldRemoveMessageLocallyOnDelete({ type: 'emit', channelId: 'ch-1', messageId: 'msg-1' }),
+    ).toBe(false);
+    expect(shouldRemoveMessageLocallyOnDelete({ type: 'noop' })).toBe(false);
   });
 });
 

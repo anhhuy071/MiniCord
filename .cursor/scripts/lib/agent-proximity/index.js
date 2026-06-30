@@ -5,7 +5,7 @@
  * pairwise TCAS advisories that drive the steer/transmit triggers, and embed
  * each agent in 3D space for the "where are the agents" visualization.
  *
- * This is the call the control pane / hook layer makes each tick:
+ * This is the call the hook layer makes each tick:
  *     const scan = scanAirspace(agents, graph)
  *     for (const a of scan.advisories) fireTrigger(a)   // transmit / steer
  *     renderViz(scan.positions, scan.advisories)        // 3D crawl view

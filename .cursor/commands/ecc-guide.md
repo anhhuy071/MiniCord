@@ -4,7 +4,7 @@ description: Navigate ECC's current agents, skills, commands, hooks, install pro
 
 # /ecc-guide
 
-Use this command as a conversational map of Everything Claude Code. It should help the user discover the right ECC surface for their task without dumping the entire README or stale catalog counts.
+Use this command as a conversational map of the ECC Cursor harness. It should help the user discover the right ECC surface for their task without dumping the entire README or stale catalog counts.
 
 ## Usage
 
@@ -90,4 +90,4 @@ For a specific feature name:
 - `/harness-audit` for deterministic repo readiness scoring
 - `/skill-health` for skill quality checks
 - `/skill-create` for extracting a new skill from local git history
-- `/security-scan` for Claude/OpenCode configuration security review
+- `/security-scan` for Cursor/OpenCode configuration security review

@@ -82,10 +82,12 @@ export default function MainContent({
       <section className="chat-messages" ref={messagesRef} onScroll={handleScroll}>
         {error && <div style={{ color: "red", padding: "10px", textAlign: "center" }}>{error}</div>}
 
-        {messages.map((message) => (
+        {messages.map((message) => {
+          const ownMessage = isOwnMessage(message);
+          return (
           <article
             key={message.id}
-            className="chat-message"
+            className={`chat-message${ownMessage ? " chat-message--own" : ""}`}
             style={message.status === "pending" ? { opacity: 0.65 } : undefined}
           >
             <div className="message-avatar">
@@ -102,11 +104,12 @@ export default function MainContent({
                   )}
                 </div>
                 <div className="message-heading-end">
-                  {isConnected && isOwnMessage(message) && (
+                  {isConnected && ownMessage && (
                     <button
                       type="button"
                       className="icon-button message-delete-button"
                       aria-label="Delete message"
+                      title="Delete message"
                       onClick={() => deleteMessage(message.id)}
                     >
                       <i className="fa-solid fa-trash" aria-hidden="true" />
@@ -118,7 +121,8 @@ export default function MainContent({
               <p className="message-text">{message.content}</p>
             </div>
           </article>
-        ))}
+        );
+        })}
       </section>
 
       <div className="chat-input border-top-0 pt-3">

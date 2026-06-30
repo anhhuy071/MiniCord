@@ -37,7 +37,6 @@ function checkTelemetryScripts(repoRoot) {
     'scripts/lib/observability-lib.js',
     'scripts/lib/observability-snapshot.js',
     'scripts/session-inspect.js',
-    'scripts/control-pane.js',
     'scripts/orchestration-status.js',
     '.cursor/hooks/post-tool-telemetry.js',
   ];

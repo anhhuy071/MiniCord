@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-25 | Files scanned: 59 | Token estimate: ~550 -->
+<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~600 -->
 
 # Dependencies & Integrations
 
@@ -21,7 +21,7 @@
 | jsonwebtoken | ^9.0 | JWT auth |
 | cors | ^2.8 | CORS for SPA |
 
-Dev: prisma, tsx, typescript, @types/*
+Dev: prisma, tsx, typescript, vitest, @types/*
 
 ## Frontend npm Dependencies
 
@@ -33,7 +33,7 @@ Dev: prisma, tsx, typescript, @types/*
 | bootstrap | ^5.3 | UI framework |
 | @fortawesome/fontawesome-free | ^6.7 | Icons |
 
-Dev: vite, @vitejs/plugin-react-swc, eslint, typescript
+Dev: vite, vitest, @testing-library/react, @testing-library/user-event, @testing-library/jest-dom, jsdom, eslint, typescript
 
 ## Root Package (`ecc-harness-template`)
 Agent observability harness scripts — **not part of MiniCord runtime**. Optional: ajv, sql.js, @iarna/toml.

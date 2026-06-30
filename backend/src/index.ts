@@ -6,8 +6,17 @@ import serverRoutes from './routes/server.routes.js';
 import userRoutes from './routes/user.routes.js';
 import dmRoutes from './routes/dm.routes.js';
 import { requireSocketAuth, AuthSocket } from './middleware/socket.middleware.js';
-import { assertChannelMember, assertConversationParticipant } from './utils/socket-auth.util.js';
+import { assertChannelMember } from './utils/socket-auth.util.js';
 import { deleteOwnChannelMessage, isValidChatDeletePayload } from './services/chat-socket.service.js';
+import {
+  isValidDmJoinPayload,
+  isValidDmLeavePayload,
+  isValidDmSendPayload,
+  loadDirectMessageHistory,
+  selectDmNotificationTargets,
+  sendDirectMessage,
+} from './services/dm-socket.service.js';
+import { assertConversationParticipant } from './utils/socket-auth.util.js';
 import { chronologicalFromLatest } from './utils/message-query.util.js';
 
 import { Server as SocketIOServer } from "socket.io";
@@ -258,62 +267,74 @@ io.on("connection", (rawSocket) => {
   });
 
   // --- DM Socket Handlers ---
-  socket.on("dm:join", async ({ conversationId }) => {
-    if (typeof conversationId !== "string" || conversationId.trim().length === 0) return;
+  socket.on("dm:join", async (payload) => {
+    if (!isValidDmJoinPayload(payload)) return;
 
-    const auth = await assertConversationParticipant(userId, conversationId);
-    if (!auth.ok) {
-      console.warn(`[Socket] User ${userId} denied DM join for ${conversationId}: ${auth.reason}`);
-      return;
-    }
-
-    socket.join(conversationId);
-    console.log(`[Socket] User ${userId} joined DM room: ${conversationId}`);
-  });
-
-  socket.on("dm:send", async ({ conversationId, content }) => {
-    if (typeof conversationId !== "string" || conversationId.trim().length === 0) return;
-    if (typeof content !== "string" || content.trim().length === 0) return;
+    const { conversationId } = payload;
 
     try {
-      // 1. Verify user belongs to conversation
-      const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
-      if (!conversation || (conversation.userOneId !== userId && conversation.userTwoId !== userId)) return;
-
-      // 2. Save directly to the Database
-      const newMessage = await prisma.directMessage.create({
-        data: {
-          content: content.trim(),
-          authorId: userId,
-          conversationId: conversation.id
-        },
-        include: { author: { select: { username: true, avatarUrl: true } } }
-      });
-
-      const formattedMessage = {
-        id: newMessage.id,
-        conversationId: conversation.id,
-        author: newMessage.author.username,
-        authorId: newMessage.authorId,
-        avatarUrl: newMessage.author.avatarUrl,
-        content: newMessage.content,
-        createdAt: newMessage.createdAt.toISOString()
-      };
-
-      // 3. Broadcast to everyone in the DM room
-      io.to(conversationId).emit("dm:message", { conversationId, message: formattedMessage });
-
-      // 4. Notify recipient globally via their personal socket for push notifications
-      const targetUserId = conversation.userOneId === userId ? conversation.userTwoId : conversation.userOneId;
-      const targetSockets = onlineUsers.get(targetUserId);
-      if (targetSockets) {
-        targetSockets.forEach(socketId => {
-          io.to(socketId).emit("dm:notification", { conversationId, message: formattedMessage });
-        });
+      const auth = await loadDirectMessageHistory(userId, conversationId);
+      if (!auth.ok) {
+        socket.emit("dm:error", { conversationId, message: auth.errorMessage });
+        return;
       }
 
+      socket.join(conversationId);
+      socket.emit("dm:history", { conversationId, messages: auth.messages });
+    } catch (err) {
+      console.error("Error loading DM history:", err);
+      socket.emit("dm:error", { conversationId, message: "Failed to load conversation" });
+    }
+  });
+
+  socket.on("dm:send", async (payload) => {
+    if (!isValidDmSendPayload(payload)) return;
+
+    const { conversationId, content } = payload;
+
+    try {
+      const result = await sendDirectMessage(userId, conversationId, content);
+      if (!result.ok) {
+        socket.emit("dm:error", { conversationId, message: result.errorMessage });
+        return;
+      }
+
+      const { message, targetUserId } = result;
+
+      io.to(conversationId).emit("dm:message", { conversationId, message });
+
+      const targetSockets = onlineUsers.get(targetUserId);
+      if (targetSockets) {
+        const room = io.sockets.adapter.rooms.get(conversationId);
+        const roomSocketIds = room ? new Set(room) : undefined;
+        const notificationTargets = selectDmNotificationTargets({
+          targetSocketIds: Array.from(targetSockets),
+          conversationRoomSocketIds: roomSocketIds,
+          senderSocketId: socket.id,
+        });
+
+        for (const socketId of notificationTargets) {
+          io.to(socketId).emit("dm:notification", { conversationId, message });
+        }
+      }
     } catch (err) {
       console.error("Error saving direct message:", err);
+      socket.emit("dm:error", { conversationId, message: "Failed to send message" });
+    }
+  });
+
+  socket.on("dm:leave", async (payload) => {
+    if (!isValidDmLeavePayload(payload)) return;
+
+    const { conversationId } = payload;
+
+    try {
+      const auth = await assertConversationParticipant(userId, conversationId);
+      if (!auth.ok) return;
+
+      socket.leave(conversationId);
+    } catch (err) {
+      console.error("Error leaving DM conversation:", err);
     }
   });
 

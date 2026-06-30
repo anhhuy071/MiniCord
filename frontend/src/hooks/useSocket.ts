@@ -19,6 +19,7 @@ export function useSocket(channelId: string | undefined, token: string | null) {
   const pendingSendQueueRef = useRef<string[]>([]);
 
   const [isConnected, setIsConnected] = useState(false);
+  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [voicePresence, setVoicePresence] = useState<Record<string, any[]>>({});
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
@@ -45,6 +46,7 @@ export function useSocket(channelId: string | undefined, token: string | null) {
 
       socket = newSocket;
       socketRef.current = newSocket;
+      setSocketInstance(newSocket);
 
       newSocket.on('connect', () => {
         console.log(`[Socket] Connected! (ID: ${newSocket.id})`);
@@ -94,17 +96,6 @@ export function useSocket(channelId: string | undefined, token: string | null) {
       newSocket.on('chat:deleted', (data: { channelId: string; messageId: string }) => {
         if (data.channelId !== channelIdRef.current) return;
         setMessages((prev) => removeChannelMessage(prev, data.messageId));
-      });
-
-      newSocket.on('dm:message', (data: { conversationId: string; message: Message }) => {
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === data.message.id)) return prev;
-          return [...prev, data.message];
-        });
-      });
-
-      newSocket.on('dm:notification', (data: { conversationId: string; message: Message }) => {
-        console.log(`[Notification] New DM from ${data.message.author}: ${data.message.content}`);
       });
 
       newSocket.on('voice:presence-update', ({ channelId: voiceChannelId, users }) => {
@@ -157,6 +148,7 @@ export function useSocket(channelId: string | undefined, token: string | null) {
         console.log(`[Socket] Tearing down connection...`);
         socketRef.current.disconnect();
         socketRef.current = null;
+        setSocketInstance(null);
       }
     };
   }, []);
@@ -204,7 +196,6 @@ export function useSocket(channelId: string | undefined, token: string | null) {
 
     if (!socketRef.current) return;
 
-    setMessages((prev) => removeChannelMessage(prev, action.messageId));
     setError(null);
 
     socketRef.current.emit('chat:delete', {
@@ -213,17 +204,8 @@ export function useSocket(channelId: string | undefined, token: string | null) {
     });
   }, [channelId, isConnected]);
 
-  const sendDirectMessage = useCallback((conversationId: string, content: string) => {
-    if (!socketRef.current || !isConnected) return;
-
-    socketRef.current.emit('dm:send', {
-      conversationId,
-      content,
-    });
-  }, [isConnected]);
-
   return {
-    socket: socketRef.current,
+    socket: socketInstance,
     isConnected,
     messages,
     voicePresence,
@@ -231,6 +213,5 @@ export function useSocket(channelId: string | undefined, token: string | null) {
     error,
     sendMessage,
     deleteMessage,
-    sendDirectMessage,
   };
 }

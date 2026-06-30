@@ -1,9 +1,9 @@
-<!-- Generated: 2026-06-25 | Files scanned: 59 | Token estimate: ~750 -->
+<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~850 -->
 
 # Backend Architecture
 
 ## Stack
-Express 5 · Socket.IO 4 · Prisma 5 · MongoDB · bcryptjs · jsonwebtoken · TypeScript (ESM)
+Express 5 · Socket.IO 4 · Prisma 5 · MongoDB · bcryptjs · jsonwebtoken · TypeScript (ESM) · Vitest
 
 ## Middleware Chain
 ```
@@ -21,6 +21,7 @@ Request → cors(FRONTEND_ORIGIN) → express.json()
 | GET | `/api/auth/me` | auth.routes + RequireAuth | user.findUnique |
 | GET | `/api/servers` | server.routes + RequireAuth | server.findMany (member filter) |
 | POST | `/api/servers` | server.routes + RequireAuth | $transaction: server + member + channels |
+| GET | `/api/servers/:serverId/members` | server.routes + RequireAuth | serverMember.findMany |
 | POST | `/api/servers/:serverId/join` | server.routes + RequireAuth | serverMember.create |
 | POST | `/api/servers/:serverId/channels` | server.routes + RequireAuth | channel.create (OWNER/ADMIN) |
 | GET | `/api/users/:id` | user.routes + RequireAuth | user.findUnique |
@@ -32,31 +33,47 @@ Request → cors(FRONTEND_ORIGIN) → express.json()
 
 ## Socket.IO Events
 
-| Event (client→server) | Handler | DB |
-|-----------------------|---------|-----|
-| `room:join` | join channel room, load history | message.findMany (50) |
-| `chat:send` | persist + broadcast | message.create |
-| `voice:join` / `voice:leave` | WebRTC room + presence | user.findUnique |
+| Event (client→server) | Handler | Service / DB |
+|-----------------------|---------|--------------|
+| `room:join` | join channel room, load history | assertChannelMember → message.findMany (50) |
+| `chat:send` | persist + broadcast | assertChannelMember → message.create |
+| `chat:delete` | delete own message + broadcast | deleteOwnChannelMessage → message.delete |
+| `voice:join` / `voice:leave` | WebRTC room + presence | assertChannelMember → user.findUnique |
 | `voice:signal` | relay SDP/ICE to peer | — |
-| `dm:join` | join conversation room | — |
+| `dm:join` | join conversation room | assertConversationParticipant |
 | `dm:send` | persist + broadcast + notify | directMessage.create |
 
 | Event (server→client) | Purpose |
 |-----------------------|---------|
 | `online:list`, `user:online`, `user:offline` | Presence |
-| `room:history`, `chat:message` | Text channel chat |
+| `room:history`, `chat:message`, `chat:deleted` | Text channel chat |
+| `chat:error`, `room:error` | Client error feedback |
 | `voice:room-users`, `voice:user-joined/left`, `voice:signal`, `voice:presence-update` | Voice |
 | `dm:message`, `dm:notification` | Direct messages |
 
+## Service Layer
+
+| Service | File | Role |
+|---------|------|------|
+| Chat socket | `services/chat-socket.service.ts` | Payload validation, deleteOwnChannelMessage, error mapping |
+
+Auth helpers (no separate service): `utils/socket-auth.util.ts` — assertChannelMember, assertMessageOwner, assertConversationParticipant, assertServerMember.
+
 ## Key Files
-| File | Lines (approx) | Role |
-|------|----------------|------|
-| `backend/src/index.ts` | 285 | App entry, Socket.IO handlers |
-| `backend/src/routes/*.routes.ts` | 4 files | REST endpoints (inline handlers, no service layer) |
-| `backend/src/middleware/auth.middleware.ts` | 25 | JWT Bearer validation |
-| `backend/src/middleware/socket.middleware.ts` | 32 | Socket JWT auth |
-| `backend/src/utils/response.util.ts` | — | `{ success, data, message, error }` envelope |
-| `backend/src/lib/prisma.ts` | — | PrismaClient singleton |
+| File | Role |
+|------|------|
+| `backend/src/index.ts` | App entry, Socket.IO handlers (thin; delete delegates to service) |
+| `backend/src/routes/*.routes.ts` | REST endpoints (inline handlers) |
+| `backend/src/services/chat-socket.service.ts` | Channel message delete business logic |
+| `backend/src/middleware/auth.middleware.ts` | JWT Bearer validation |
+| `backend/src/middleware/socket.middleware.ts` | Socket JWT auth |
+| `backend/src/utils/response.util.ts` | `{ success, data, message, error }` envelope |
+| `backend/src/utils/message-query.util.ts` | chronologicalFromLatest |
+| `backend/src/utils/user.util.ts` | PUBLIC_USER_SELECT constant |
+| `backend/src/lib/prisma.ts` | PrismaClient singleton |
+
+## Tests
+Vitest in `backend/src/**/*.test.ts` — socket-auth, message-query, chat-socket service (28 tests).
 
 ## Response Envelope
-`sendSuccess(res, data, message, status)` / `sendError(res, error, status)` — used by auth, server, dm routes. User routes use raw `res.json`.
+`sendSuccess(res, data, message, status)` / `sendError(res, error, status)` — auth, server, dm routes. User routes use raw `res.json`.

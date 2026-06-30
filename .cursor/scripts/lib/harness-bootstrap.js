@@ -6,7 +6,7 @@ const path = require('path');
 const initSqlJs = require('sql.js');
 
 const { createStateStore } = require('./state-store');
-const { defaultDbPath, defaultStateDbPath } = require('./control-pane/state');
+const { defaultDbPath, defaultStateDbPath } = require('./harness-paths');
 
 const ECC2_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS sessions (

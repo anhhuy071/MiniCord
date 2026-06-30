@@ -72,11 +72,11 @@ Categorize changed files: source, tests, docs, config, migrations.
 ### Planning Artifacts
 
 Check for related artifacts produced by `/plan-prd`, `/plan`, or the legacy PRP workflow:
-- `.claude/prds/` — PRDs this PR implements a milestone of
-- `.claude/plans/` — Plans executed by this PR
-- `.claude/PRPs/prds/` — legacy PRP PRDs
-- `.claude/PRPs/plans/` — legacy PRP implementation plans
-- `.claude/PRPs/reports/` — legacy PRP implementation reports
+- `.cursor/prds/` — PRDs this PR implements a milestone of
+- `.cursor/plans/` — Plans executed by this PR
+- `.cursor/PRPs/prds/` — legacy PRP PRDs
+- `.cursor/PRPs/plans/` — legacy PRP implementation plans
+- `.cursor/PRPs/reports/` — legacy PRP implementation reports
 
 Reference these in the PR body if they exist.
 

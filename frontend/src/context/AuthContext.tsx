@@ -22,21 +22,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Automatically restore session from localStorage on initial load
+  // Restore session from localStorage and refresh profile so user.id stays in sync
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const clearSession = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+    };
+
+    const restoreSession = async () => {
+      if (!storedToken) {
+        setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
+
+      setToken(storedToken);
+
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          clearSession();
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+
+        if (!response.ok) {
+          clearSession();
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.data) {
+          setUser(data.data);
+          localStorage.setItem('user', JSON.stringify(data.data));
+        }
+      } catch {
+        // Keep cached user when offline; ownership falls back to username
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void restoreSession();
   }, []);
 
   const login = (userData: User, newToken: string) => {

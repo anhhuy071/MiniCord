@@ -34,7 +34,10 @@ export function appendChannelMessage(
   };
 }
 
-export function removeOptimisticById(prev: Message[], messageId: string): Message[] {
+export function removeOptimisticById<T extends { id: string }>(
+  prev: T[],
+  messageId: string,
+): T[] {
   if (!isOptimisticMessageId(messageId)) return prev;
   return prev.filter((m) => m.id !== messageId);
 }
@@ -89,8 +92,15 @@ export function isOwnChannelMessage(
   user: { id?: string; username?: string } | null | undefined,
 ): boolean {
   if (!user) return false;
-  if (user.id && message.authorId) return message.authorId === user.id;
-  if (!message.authorId && user.username) return message.author === user.username;
+
+  if (user.id && message.authorId) {
+    return message.authorId === user.id;
+  }
+
+  if (user.username && message.author) {
+    return message.author === user.username;
+  }
+
   return false;
 }
 
@@ -117,4 +127,8 @@ export function planDeleteMessage(params: {
     channelId: params.channelId,
     messageId: params.messageId,
   };
+}
+
+export function shouldRemoveMessageLocallyOnDelete(action: DeleteMessageAction): boolean {
+  return action.type === 'local';
 }

@@ -18,7 +18,7 @@ $ARGUMENTS
 - **Mandatory Parallel**: Codex/Gemini calls MUST use `run_in_background: true` (including single model calls, to avoid blocking main thread)
 - **Code Sovereignty**: External models have **zero filesystem write access**, all modifications by Claude
 - **Stop-Loss Mechanism**: Do not proceed to next phase until current phase output is validated
-- **Planning Only**: This command allows reading context and writing to `.claude/plan/*` plan files, but **NEVER modify production code**
+- **Planning Only**: This command allows reading context and writing to `.cursor/plans/*` plan files, but **NEVER modify production code**
 
 ---
 
@@ -206,18 +206,18 @@ Synthesize both analyses, generate **Step-by-step Implementation Plan**:
 **`/ccg:plan` responsibilities end here, MUST execute the following actions**:
 
 1. Present complete implementation plan to user (including pseudo-code)
-2. Save plan to `.claude/plan/<feature-name>.md` (extract feature name from requirement, e.g., `user-auth`, `payment-module`)
+2. Save plan to `.cursor/plans/<feature-name>.md` (extract feature name from requirement, e.g., `user-auth`, `payment-module`)
 3. Output prompt in **bold text** (MUST use actual saved file path):
 
 ---
-**Plan generated and saved to `.claude/plan/actual-feature-name.md`**
+**Plan generated and saved to `.cursor/plans/actual-feature-name.md`**
 
 **Please review the plan above. You can:**
 - **Modify plan**: Tell me what needs adjustment, I'll update the plan
 - **Execute plan**: Copy the following command to a new session
 
 ```
-/ccg:execute .claude/plan/actual-feature-name.md
+/ccg:execute .cursor/plans/actual-feature-name.md
 ```
 ---
 
@@ -237,8 +237,8 @@ Synthesize both analyses, generate **Step-by-step Implementation Plan**:
 
 After planning completes, save plan to:
 
-- **First planning**: `.claude/plan/<feature-name>.md`
-- **Iteration versions**: `.claude/plan/<feature-name>-v2.md`, `.claude/plan/<feature-name>-v3.md`...
+- **First planning**: `.cursor/plans/<feature-name>.md`
+- **Iteration versions**: `.cursor/plans/<feature-name>-v2.md`, `.cursor/plans/<feature-name>-v3.md`...
 
 Plan file write should complete before presenting plan to user.
 
@@ -249,7 +249,7 @@ Plan file write should complete before presenting plan to user.
 If user requests plan modifications:
 
 1. Adjust plan content based on user feedback
-2. Update `.claude/plan/<feature-name>.md` file
+2. Update `.cursor/plans/<feature-name>.md` file
 3. Re-present modified plan
 4. Prompt user to review or execute again
 
@@ -260,7 +260,7 @@ If user requests plan modifications:
 After user approves, **manually** execute:
 
 ```bash
-/ccg:execute .claude/plan/<feature-name>.md
+/ccg:execute .cursor/plans/<feature-name>.md
 ```
 
 ---

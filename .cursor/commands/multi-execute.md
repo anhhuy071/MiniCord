@@ -117,7 +117,7 @@ TaskOutput({ task_id: "<task_id>", block: true, timeout: 600000 })
 `[Mode: Prepare]`
 
 1. **Identify Input Type**:
-   - Plan file path (e.g., `.claude/plan/xxx.md`)
+   - Plan file path (e.g., `.cursor/plans/xxx.md`)
    - Direct task description
 
 2. **Read Plan Content**:
@@ -306,7 +306,7 @@ After audit passes, report to user:
 
 ```bash
 # Execute plan file
-/ccg:execute .claude/plan/feature-name.md
+/ccg:execute .cursor/plans/feature-name.md
 
 # Execute task directly (for plans already discussed in context)
 /ccg:execute implement user authentication based on previous plan

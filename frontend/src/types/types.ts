@@ -50,6 +50,27 @@ export interface Message {
   status?: 'pending' | 'sent' | 'failed';
 }
 
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  author: string;
+  authorId: string;
+  avatarUrl?: string | null;
+  content: string;
+  createdAt: string;
+  status?: 'pending' | 'sent' | 'failed';
+}
+
+export interface Conversation {
+  id: string;
+  userOneId: string;
+  userTwoId: string;
+  userOne: PublicUser;
+  userTwo: PublicUser;
+  createdAt?: string;
+  updatedAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;

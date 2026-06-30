@@ -2,6 +2,7 @@ import type { Channel, Conversation, Message, PrismaClient, ServerMember } from 
 import prisma from '../lib/prisma.js';
 
 type AuthDb = Pick<PrismaClient, 'channel' | 'serverMember' | 'conversation'>;
+type ConversationAuthDb = Pick<PrismaClient, 'conversation'>;
 type MessageAuthDb = AuthDb & Pick<PrismaClient, 'message'>;
 
 export type ServerMemberResult =
@@ -73,7 +74,7 @@ export async function assertMessageOwner(
 export async function assertConversationParticipant(
   userId: string,
   conversationId: string,
-  db: AuthDb = prisma,
+  db: ConversationAuthDb = prisma,
 ): Promise<ConversationParticipantResult> {
   const conversation = await db.conversation.findUnique({
     where: { id: conversationId },

@@ -851,9 +851,8 @@ function getCursorObservabilityChecks(rootDir) {
       path: 'scripts/observability-readiness.js',
       description: 'Observability readiness CLI and session inspect exist',
       pass: fileExists(rootDir, 'scripts/observability-readiness.js')
-        && fileExists(rootDir, 'scripts/session-inspect.js')
-        && fileExists(rootDir, 'scripts/control-pane.js'),
-      fix: 'Add observability-readiness.js, session-inspect.js, and control-pane.js CLIs.',
+        && fileExists(rootDir, 'scripts/session-inspect.js'),
+      fix: 'Add observability-readiness.js and session-inspect.js CLIs.',
     },
     {
       id: 'cursor-orchestration-clis',
