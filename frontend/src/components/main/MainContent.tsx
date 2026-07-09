@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import type { Message } from "../../types/types";
 import { isNearBottom, isOwnChannelMessage } from "../../utils/message.util";
+import Modal from "../common/Modal";
 
 type MainContentProps = {
   channelName: string;
@@ -23,6 +24,7 @@ export default function MainContent({
   error,
 }: MainContentProps) {
   const { user } = useAuth();
+  const [messageIdToDelete, setMessageIdToDelete] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const messagesRef = useRef<HTMLElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -110,7 +112,7 @@ export default function MainContent({
                       className="icon-button message-delete-button"
                       aria-label="Delete message"
                       title="Delete message"
-                      onClick={() => deleteMessage(message.id)}
+                      onClick={() => setMessageIdToDelete(message.id)}
                     >
                       <i className="fa-solid fa-trash" aria-hidden="true" />
                     </button>
@@ -146,6 +148,37 @@ export default function MainContent({
           </div>
         </form>
       </div>
+
+      <Modal
+        isOpen={messageIdToDelete !== null}
+        onClose={() => setMessageIdToDelete(null)}
+        title="Xác nhận xóa"
+      >
+        <div className="text-center">
+          <p className="mb-4">Bạn có chắc chắn muốn xóa tin nhắn này không?</p>
+          <div className="d-flex justify-content-end gap-2 mt-4">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setMessageIdToDelete(null)}
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => {
+                if (messageIdToDelete) {
+                  deleteMessage(messageIdToDelete);
+                  setMessageIdToDelete(null);
+                }
+              }}
+            >
+              Xóa
+            </button>
+          </div>
+        </div>
+      </Modal>
     </main>
   );
 }

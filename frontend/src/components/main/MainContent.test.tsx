@@ -63,12 +63,32 @@ describe('MainContent delete message UI', () => {
     expect(screen.queryByRole('button', { name: 'Delete message' })).not.toBeInTheDocument();
   });
 
-  it('calls deleteMessage with the message id when delete is clicked', async () => {
+  it('opens confirmation modal when delete is clicked, and calls deleteMessage only when confirmed', async () => {
+    const user = userEvent.setup();
+    const { deleteMessage } = renderMainContent();
+
+    expect(screen.queryByText('Bạn có chắc chắn muốn xóa tin nhắn này không?')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete message' }));
+
+    expect(screen.getByText('Bạn có chắc chắn muốn xóa tin nhắn này không?')).toBeInTheDocument();
+    expect(deleteMessage).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Xóa' }));
+
+    expect(deleteMessage).toHaveBeenCalledWith('msg-1');
+    expect(screen.queryByText('Bạn có chắc chắn muốn xóa tin nhắn này không?')).not.toBeInTheDocument();
+  });
+
+  it('closes confirmation modal and does not call deleteMessage when cancelled', async () => {
     const user = userEvent.setup();
     const { deleteMessage } = renderMainContent();
 
     await user.click(screen.getByRole('button', { name: 'Delete message' }));
 
-    expect(deleteMessage).toHaveBeenCalledWith('msg-1');
+    await user.click(screen.getByRole('button', { name: 'Hủy' }));
+
+    expect(deleteMessage).not.toHaveBeenCalled();
+    expect(screen.queryByText('Bạn có chắc chắn muốn xóa tin nhắn này không?')).not.toBeInTheDocument();
   });
 });

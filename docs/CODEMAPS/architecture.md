@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~720 -->
+<!-- Generated: 2026-07-09 | Files scanned: 75 | Token estimate: ~750 -->
 
 # MiniCord Architecture
 
@@ -48,6 +48,20 @@ Delete (own messages):
 VoicePanel → useVoiceRoom → getUserMedia + voice:join
   → WebRTC peer mesh via voice:signal relay
   → voice:presence-update broadcast (in-memory voicePresences map)
+```
+
+## Data Flow (Direct Messaging (DM))
+
+```
+Open/Select Conversation:
+  User clicks user/conversation → openConversationWithUser/selectConversation → emit dm:join
+  → index.ts → loadDirectMessageHistory → emit dm:history → setMessages in client state
+
+Send DM:
+  User types DM → sendMessage → emit dm:send
+  → index.ts → sendDirectMessage → prisma.directMessage.create
+  → io.to(conversationId).emit dm:message → appendDmMessage client-side
+  → Send real-time notification to recipient via io.to(socketId).emit dm:notification
 ```
 
 ## In-Memory State (Backend)

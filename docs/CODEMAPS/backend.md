@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-30 | Files scanned: 68 | Token estimate: ~850 -->
+<!-- Generated: 2026-07-09 | Files scanned: 75 | Token estimate: ~950 -->
 
 # Backend Architecture
 
@@ -56,6 +56,7 @@ Request → cors(FRONTEND_ORIGIN) → express.json()
 | Service | File | Role |
 |---------|------|------|
 | Chat socket | `services/chat-socket.service.ts` | Payload validation, deleteOwnChannelMessage, error mapping |
+| DM socket | `services/dm-socket.service.ts` | Payload validation, load direct message history, direct message sending, notification targets selection, error mapping |
 
 Auth helpers (no separate service): `utils/socket-auth.util.ts` — assertChannelMember, assertMessageOwner, assertConversationParticipant, assertServerMember.
 
@@ -65,6 +66,7 @@ Auth helpers (no separate service): `utils/socket-auth.util.ts` — assertChanne
 | `backend/src/index.ts` | App entry, Socket.IO handlers (thin; delete delegates to service) |
 | `backend/src/routes/*.routes.ts` | REST endpoints (inline handlers) |
 | `backend/src/services/chat-socket.service.ts` | Channel message delete business logic |
+| `backend/src/services/dm-socket.service.ts` | Direct message socket logic & payload validators |
 | `backend/src/middleware/auth.middleware.ts` | JWT Bearer validation |
 | `backend/src/middleware/socket.middleware.ts` | Socket JWT auth |
 | `backend/src/utils/response.util.ts` | `{ success, data, message, error }` envelope |
@@ -73,7 +75,7 @@ Auth helpers (no separate service): `utils/socket-auth.util.ts` — assertChanne
 | `backend/src/lib/prisma.ts` | PrismaClient singleton |
 
 ## Tests
-Vitest in `backend/src/**/*.test.ts` — socket-auth, message-query, chat-socket service (28 tests).
+Vitest in `backend/src/**/*.test.ts` — socket-auth, message-query, chat-socket service, dm-socket service (46 tests).
 
 ## Response Envelope
 `sendSuccess(res, data, message, status)` / `sendError(res, error, status)` — auth, server, dm routes. User routes use raw `res.json`.
